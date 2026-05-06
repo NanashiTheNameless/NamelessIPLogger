@@ -158,5 +158,5 @@ jobs:
           asset_path: ${{ steps.locate_jar.outputs.jar_path }}
           asset_name: VelocityIPLogger-nightly-${{ steps.vars.outputs.project_version }}-$$.jar
           asset_content_type: application/java-archive
-          max_releases: 1
+          max_releases: 6
           ignore_hash: false
