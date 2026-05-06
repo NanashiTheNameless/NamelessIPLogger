@@ -52,16 +52,18 @@ jobs:
             exit 1
           fi
           asset_name="VelocityIPLogger-${{ steps.vars.outputs.project_version }}.jar"
+          asset_path="build/libs/${asset_name}"
           echo "jar_path=$jar_path" >> "$GITHUB_OUTPUT"
           echo "asset_name=$asset_name" >> "$GITHUB_OUTPUT"
+          echo "asset_path=$asset_path" >> "$GITHUB_OUTPUT"
 
-      - name: Rename jar for release
+      - name: Copy jar with release name
         run: |
-          mv -f "${{ steps.locate_jar.outputs.jar_path }}" "build/libs/${{ steps.locate_jar.outputs.asset_name }}"
+          cp "${{ steps.locate_jar.outputs.jar_path }}" "${{ steps.locate_jar.outputs.asset_path }}"
 
       - name: Create release and upload jar
         uses: softprops/action-gh-release@v3
         with:
           name: VelocityIPLogger ${{ steps.vars.outputs.project_version }}
           generate_release_notes: true
-          files: build/libs/${{ steps.locate_jar.outputs.asset_name }}
+          files: ${{ steps.locate_jar.outputs.asset_path }}
