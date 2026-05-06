@@ -1,0 +1,162 @@
+name: Nightly Build
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Gather variables
+        id: vars
+        run: |
+          date=$(date -u +'%Y.%m.%d')
+          git_sha7=$(git rev-parse --short=7 HEAD)
+          project_version=$(sed -nE 's/^version[[:space:]]*=[[:space:]]*(.+)$/\1/p' gradle.properties | head -n 1 | tr -d '\r')
+          if [ -z "$project_version" ]; then
+            echo "Failed to parse project version from gradle.properties" >&2
+            exit 1
+          fi
+          echo "date=$date" >> "$GITHUB_OUTPUT"
+          echo "git_sha7=$git_sha7" >> "$GITHUB_OUTPUT"
+          echo "project_version=$project_version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Azul Zulu JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: '21'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build
+        run: ./gradlew build --no-daemon
+
+      - name: Locate release jar
+        id: locate_jar
+        run: |
+          jar_path=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' | sort | head -n 1)
+          if [ -z "$jar_path" ]; then
+            echo "No release jar found in build/libs" >&2
+            exit 1
+          fi
+          echo "jar_path=$jar_path" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update nightly tag
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const ref = 'tags/nightly';
+
+            try {
+              await github.rest.git.getRef({ owner, repo, ref });
+              await github.rest.git.updateRef({
+                owner,
+                repo,
+                ref,
+                sha: context.sha,
+                force: true,
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+
+              await github.rest.git.createRef({
+                owner,
+                repo,
+                ref: 'refs/tags/nightly',
+                sha: context.sha,
+              });
+            }
+
+      - name: Ensure nightly release exists
+        id: release
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const tag = 'nightly';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const releaseName = `Nightly (${{ steps.vars.outputs.date }})`;
+            const jarAssetName = `VelocityIPLogger-nightly-${{ steps.vars.outputs.project_version }}-${{ steps.vars.outputs.date }}-${{ steps.vars.outputs.git_sha7 }}.jar`;
+            const jarUrl = `https://github.com/${owner}/${repo}/releases/download/${tag}/${jarAssetName}`;
+            const releaseBody = [
+              'Latest rolling nightly build for VelocityIPLogger.',
+              '',
+              `Download the latest nightly JAR: [${jarAssetName}](${jarUrl})`,
+              `Source commit: \`${{ steps.vars.outputs.git_sha7 }}\``,
+            ].join('\n');
+
+            async function findRelease() {
+              try {
+                return await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+                return null;
+              }
+            }
+
+            let release = await findRelease();
+
+            if (!release) {
+              release = await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tag,
+                name: releaseName,
+                draft: false,
+                prerelease: false,
+                body: releaseBody,
+              });
+            } else {
+              release = {
+                data: (await github.rest.repos.updateRelease({
+                  owner,
+                  repo,
+                  release_id: release.data.id,
+                  tag_name: tag,
+                  name: releaseName,
+                  draft: false,
+                  prerelease: false,
+                  body: releaseBody,
+                })).data,
+              };
+            }
+
+            core.setOutput('upload_url', release.data.upload_url);
+            core.setOutput('release_id', release.data.id);
+
+      - name: Publish nightly asset
+        uses: NanashiTheNameless/deploy-nightly@master
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          release_id: ${{ steps.release.outputs.release_id }}
+          asset_path: ${{ steps.locate_jar.outputs.jar_path }}
+          asset_name: VelocityIPLogger-nightly-${{ steps.vars.outputs.project_version }}-$$.jar
+          asset_content_type: application/java-archive
+          max_releases: 1
+          ignore_hash: false

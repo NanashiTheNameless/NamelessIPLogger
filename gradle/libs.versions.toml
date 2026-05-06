@@ -1,0 +1,13 @@
+metadata.format.version = "1.1"
+
+[versions]
+velocity = "3.4.0-SNAPSHOT"
+runtask = "3.0.0"
+
+[libraries]
+velocity = { group = "com.velocitypowered", name = "velocity-api", version.ref = "velocity" }
+geoip2 = { module = "com.maxmind.geoip2:geoip2", version = "4.2.1" }
+
+[plugins]
+runvelocity = { id = "xyz.jpenilla.run-velocity", version.ref = "runtask" }
+idea-ext = { id = "org.jetbrains.gradle.plugin.idea-ext", version = "1.3" }
