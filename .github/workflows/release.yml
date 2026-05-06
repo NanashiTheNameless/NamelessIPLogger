@@ -57,7 +57,7 @@ jobs:
 
       - name: Rename jar for release
         run: |
-          mv "${{ steps.locate_jar.outputs.jar_path }}" "build/libs/${{ steps.locate_jar.outputs.asset_name }}"
+          mv -f "${{ steps.locate_jar.outputs.jar_path }}" "build/libs/${{ steps.locate_jar.outputs.asset_name }}"
 
       - name: Create release and upload jar
         uses: softprops/action-gh-release@v3
