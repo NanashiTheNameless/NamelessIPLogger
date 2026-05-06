@@ -59,7 +59,11 @@ jobs:
 
       - name: Copy jar with release name
         run: |
-          cp "${{ steps.locate_jar.outputs.jar_path }}" "${{ steps.locate_jar.outputs.asset_path }}"
+          src="${{ steps.locate_jar.outputs.jar_path }}"
+          dst="${{ steps.locate_jar.outputs.asset_path }}"
+          if [ "$src" != "$dst" ]; then
+            cp "$src" "$dst"
+          fi
 
       - name: Create release and upload jar
         uses: softprops/action-gh-release@v3
