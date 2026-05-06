@@ -1,0 +1,67 @@
+name: Release Build
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Gather variables
+        id: vars
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          project_version=$(sed -nE 's/^version[[:space:]]*=[[:space:]]*(.+)$/\1/p' gradle.properties | head -n 1 | tr -d '\r')
+          if [ -z "$project_version" ]; then
+            echo "Failed to parse project version from gradle.properties" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "project_version=$project_version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Azul Zulu JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: '21'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build
+        run: ./gradlew build --no-daemon
+
+      - name: Locate release jar
+        id: locate_jar
+        run: |
+          jar_path=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' | sort | head -n 1)
+          if [ -z "$jar_path" ]; then
+            echo "No release jar found in build/libs" >&2
+            exit 1
+          fi
+          asset_name="VelocityIPLogger-${{ steps.vars.outputs.project_version }}.jar"
+          echo "jar_path=$jar_path" >> "$GITHUB_OUTPUT"
+          echo "asset_name=$asset_name" >> "$GITHUB_OUTPUT"
+
+      - name: Rename jar for release
+        run: |
+          mv "${{ steps.locate_jar.outputs.jar_path }}" "build/libs/${{ steps.locate_jar.outputs.asset_name }}"
+
+      - name: Create release and upload jar
+        uses: softprops/action-gh-release@v3
+        with:
+          name: VelocityIPLogger ${{ steps.vars.outputs.project_version }}
+          generate_release_notes: true
+          files: build/libs/${{ steps.locate_jar.outputs.asset_name }}
