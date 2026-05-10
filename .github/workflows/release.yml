@@ -69,7 +69,4 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           name: VelocityIPLogger ${{ steps.vars.outputs.project_version }}
-          body: |
-            Version ${{ steps.vars.outputs.project_version }} release.
-            Full Changelog: https://github.com/${{ github.repository }}/tree/${{ steps.vars.outputs.tag }}
           files: ${{ steps.locate_jar.outputs.asset_path }}
