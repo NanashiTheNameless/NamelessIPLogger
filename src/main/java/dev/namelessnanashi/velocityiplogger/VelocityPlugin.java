@@ -1,7 +1,10 @@
 package dev.namelessnanashi.velocityiplogger;
 
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.tree.CommandNode;
 import com.google.inject.Inject;
 import com.velocitypowered.api.command.CommandMeta;
+import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
@@ -9,6 +12,7 @@ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
@@ -45,6 +49,7 @@ public final class VelocityPlugin {
 	private volatile TelemetryService telemetryService;
 	private volatile UpdateCheckerService updateCheckerService;
 	private volatile PluginConfig pluginConfig;
+	private volatile PluginStrings pluginStrings = PluginStrings.defaults();
 	private final Object lifecycleLock = new Object();
 	
 	@Subscribe
@@ -53,13 +58,14 @@ public final class VelocityPlugin {
 
 		try {
 			pluginConfig = PluginConfig.load(dataDirectory, logger);
+			pluginStrings = PluginStrings.load(dataDirectory, logger);
 			repository = new IpLoggerRepository(dataDirectory, logger, pluginConfig);
 			geoIpService = new GeoIpService(logger, dataDirectory, pluginConfig);
 			repository.initialize();
 			geoIpService.initialize();
 			telemetryService = new TelemetryService(logger, dataDirectory, pluginConfig);
 			telemetryService.start();
-			updateCheckerService = new UpdateCheckerService(logger, proxyServer, pluginConfig);
+			updateCheckerService = new UpdateCheckerService(logger, proxyServer, pluginConfig, pluginStrings);
 			updateCheckerService.start();
 			registerCommands();
 			logger.info("VelocityIPLogger initialized. Data directory: {}", dataDirectory.toAbsolutePath().toString());
@@ -150,16 +156,32 @@ public final class VelocityPlugin {
 		final CommandMeta lookupMeta = proxyServer.getCommandManager()
 			.metaBuilder("viplookup")
 			.aliases("viplog", "iplookup", "iplog")
+			.hint(commandHint("viplookup"))
+			.hint(commandHint("viplog"))
+			.hint(commandHint("iplookup"))
+			.hint(commandHint("iplog"))
 			.plugin(this)
 			.build();
 
 		proxyServer.getCommandManager().register(lookupMeta, new ConsoleLookupCommand(repository, this));
 	}
 
+	private CommandNode<CommandSource> commandHint(final String commandName) {
+		return LiteralArgumentBuilder.<CommandSource>literal(commandName)
+			.requires(this::canUseLookupCommand)
+			.build();
+	}
+
+	private boolean canUseLookupCommand(final CommandSource source) {
+		return source instanceof ConsoleCommandSource
+			|| (commandsAllowAdminPermission() && source.hasPermission(PluginPermissions.ADMIN));
+	}
+
 	public ReloadResult reloadConfiguration() {
 		synchronized (lifecycleLock) {
 			try {
 				final PluginConfig newConfig = PluginConfig.load(dataDirectory, logger);
+				final PluginStrings newStrings = PluginStrings.load(dataDirectory, logger);
 				final GeoIpService newGeoIpService = new GeoIpService(logger, dataDirectory, newConfig);
 				newGeoIpService.initialize();
 				if (!newGeoIpService.isReady()) {
@@ -168,6 +190,7 @@ public final class VelocityPlugin {
 
 				final GeoIpService previousService = geoIpService;
 				pluginConfig = newConfig;
+				pluginStrings = newStrings;
 				geoIpService = newGeoIpService;
 				if (repository != null) {
 					repository.setConfig(newConfig);
@@ -180,16 +203,16 @@ public final class VelocityPlugin {
 				if (updateCheckerService != null) {
 					updateCheckerService.shutdown();
 				}
-				updateCheckerService = new UpdateCheckerService(logger, proxyServer, newConfig);
+				updateCheckerService = new UpdateCheckerService(logger, proxyServer, newConfig, newStrings);
 				updateCheckerService.start();
 				if (previousService != null) {
 					previousService.shutdown();
 				}
 
-				return new ReloadResult(true, "Configuration reloaded successfully.");
+				return new ReloadResult(true, newStrings.get("reload.success"));
 			} catch (final Exception exception) {
 				logger.error("Failed to reload configuration", exception);
-				return new ReloadResult(false, exception.getMessage() == null ? "unknown error" : exception.getMessage());
+				return new ReloadResult(false, strings().format("reload.failure", "error", errorMessage(exception)));
 			}
 		}
 	}
@@ -197,15 +220,15 @@ public final class VelocityPlugin {
 	public ReloadResult updateGeoIpDatabaseNow() {
 		synchronized (lifecycleLock) {
 			if (geoIpService == null) {
-				return new ReloadResult(false, "GeoIP service is not initialized yet.");
+				return new ReloadResult(false, strings().get("geoip.service-unavailable"));
 			}
 
 			try {
 				geoIpService.refreshNow();
-				return new ReloadResult(true, "GeoIP databases were updated successfully.");
+				return new ReloadResult(true, strings().get("geoip.update.success"));
 			} catch (final Exception exception) {
 				logger.error("Failed to update GeoIP databases", exception);
-				return new ReloadResult(false, exception.getMessage() == null ? "unknown error" : exception.getMessage());
+				return new ReloadResult(false, strings().format("geoip.update.failure", "error", errorMessage(exception)));
 			}
 		}
 	}
@@ -213,7 +236,7 @@ public final class VelocityPlugin {
 	public UpdateCheckResult checkForUpdatesNow() {
 		final UpdateCheckerService checker = updateCheckerService;
 		if (checker == null) {
-			return new UpdateCheckResult(false, false, "Update checker is not initialized yet.");
+			return new UpdateCheckResult(false, false, strings().get("updates.checker-unavailable"));
 		}
 
 		final UpdateCheckerService.UpdateCheckResult result = checker.checkNow();
@@ -222,6 +245,14 @@ public final class VelocityPlugin {
 
 	public boolean commandsAllowAdminPermission() {
 		return pluginConfig != null && pluginConfig.commandsAllowAdminPermission();
+	}
+
+	public PluginStrings strings() {
+		return pluginStrings == null ? PluginStrings.defaults() : pluginStrings;
+	}
+
+	private static String errorMessage(final Exception exception) {
+		return exception.getMessage() == null ? "unknown error" : exception.getMessage();
 	}
 
 	public record ReloadResult(boolean success, String message) {

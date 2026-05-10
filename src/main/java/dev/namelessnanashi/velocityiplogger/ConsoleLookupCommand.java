@@ -10,8 +10,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public final class ConsoleLookupCommand implements SimpleCommand {
-	private static final String ADMIN_PERMISSION = "velocityiplogger.admin";
-
 	private final IpLoggerRepository repository;
 	private final VelocityPlugin plugin;
 
@@ -78,56 +76,48 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 
 	private boolean hasCommandAccess(final Invocation invocation) {
 		return invocation.source() instanceof ConsoleCommandSource
-			|| (plugin.commandsAllowAdminPermission() && invocation.source().hasPermission(ADMIN_PERMISSION));
+			|| (plugin.commandsAllowAdminPermission() && invocation.source().hasPermission(PluginPermissions.ADMIN));
 	}
 
 	private void sendAccessDenied(final Invocation invocation) {
 		if (plugin.commandsAllowAdminPermission()) {
-			invocation.source().sendMessage(Component.text("This command requires " + ADMIN_PERMISSION + "."));
+			invocation.source().sendMessage(strings().component("access.permission-required", "permission", PluginPermissions.ADMIN));
 			return;
 		}
 
-		invocation.source().sendMessage(Component.text("This command is console-only."));
+		invocation.source().sendMessage(strings().component("access.console-only"));
 	}
 
 	private void handleReload(final Invocation invocation, final int argLength) {
 		if (argLength != 1) {
-			invocation.source().sendMessage(Component.text("Usage: /viplookup reload"));
+			invocation.source().sendMessage(strings().component("usage.reload"));
 			return;
 		}
 
 		final VelocityPlugin.ReloadResult result = plugin.reloadConfiguration();
-		if (result.success()) {
-			invocation.source().sendMessage(Component.text("[VelocityIPLogger] " + result.message()));
-		} else {
-			invocation.source().sendMessage(Component.text("[VelocityIPLogger] Reload failed: " + result.message()));
-		}
+		invocation.source().sendMessage(prefixed(result.message()));
 	}
 
 	private void handleCheckUpdates(final Invocation invocation, final int argLength) {
 		if (argLength != 1) {
-			invocation.source().sendMessage(Component.text("Usage: /viplookup checkupdates"));
+			invocation.source().sendMessage(strings().component("usage.checkupdates"));
 			return;
 		}
 
-		invocation.source().sendMessage(Component.text("[VelocityIPLogger] Checking for updates now..."));
+		invocation.source().sendMessage(prefixed(strings().get("updates.check.start")));
 		final VelocityPlugin.UpdateCheckResult result = plugin.checkForUpdatesNow();
-		invocation.source().sendMessage(Component.text("[VelocityIPLogger] " + result.message()));
+		invocation.source().sendMessage(prefixed(result.message()));
 	}
 
 	private void handleUpdateDb(final Invocation invocation, final int argLength) {
 		if (argLength != 1) {
-			invocation.source().sendMessage(Component.text("Usage: /viplookup updatedb"));
+			invocation.source().sendMessage(strings().component("usage.updatedb"));
 			return;
 		}
 
-		invocation.source().sendMessage(Component.text("[VelocityIPLogger] Updating GeoIP databases now..."));
+		invocation.source().sendMessage(prefixed(strings().get("geoip.update.start")));
 		final VelocityPlugin.ReloadResult result = plugin.updateGeoIpDatabaseNow();
-		if (result.success()) {
-			invocation.source().sendMessage(Component.text("[VelocityIPLogger] " + result.message()));
-		} else {
-			invocation.source().sendMessage(Component.text("[VelocityIPLogger] Update failed: " + result.message()));
-		}
+		invocation.source().sendMessage(prefixed(result.message()));
 	}
 
 	private void handleUuid(final Invocation invocation, final String rawUuid) {
@@ -135,13 +125,13 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 		try {
 			uuid = UUID.fromString(rawUuid);
 		} catch (final IllegalArgumentException exception) {
-			invocation.source().sendMessage(Component.text("Invalid UUID: " + rawUuid));
+			invocation.source().sendMessage(strings().component("lookup.invalid-uuid", "uuid", rawUuid));
 			return;
 		}
 
 		final Optional<IpLoggerRepository.PlayerInfoView> result = repository.findByUuid(uuid);
 		if (result.isEmpty()) {
-			invocation.source().sendMessage(Component.text("No records found for UUID " + uuid));
+			invocation.source().sendMessage(strings().component("lookup.no-records.uuid", "uuid", uuid.toString()));
 			return;
 		}
 
@@ -151,11 +141,11 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 	private void handleUsername(final Invocation invocation, final String username) {
 		final List<IpLoggerRepository.PlayerInfoView> players = repository.findByUsername(username);
 		if (players.isEmpty()) {
-			invocation.source().sendMessage(Component.text("No records found for username " + username));
+			invocation.source().sendMessage(strings().component("lookup.no-records.username", "username", username));
 			return;
 		}
 
-		invocation.source().sendMessage(Component.text("Matches for username '" + username + "': " + players.size()));
+		invocation.source().sendMessage(strings().component("lookup.matches.username", "username", username, "count", Integer.toString(players.size())));
 		for (final IpLoggerRepository.PlayerInfoView player : players) {
 			sendPlayerInfo(invocation, player);
 		}
@@ -164,49 +154,54 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 	private void handleIp(final Invocation invocation, final String ip) {
 		final List<IpLoggerRepository.IpCorrelationView> links = repository.findByIp(ip);
 		if (links.isEmpty()) {
-			invocation.source().sendMessage(Component.text("No records found for IP " + ip));
+			invocation.source().sendMessage(strings().component("lookup.no-records.ip", "ip", ip));
 			return;
 		}
 
-		invocation.source().sendMessage(Component.text("Matches for IP " + ip + ": " + links.size()));
+		invocation.source().sendMessage(strings().component("lookup.matches.ip", "ip", ip, "count", Integer.toString(links.size())));
 		for (final IpLoggerRepository.IpCorrelationView link : links) {
-			invocation.source().sendMessage(Component.text(
-				"- uuid=" + link.uuid()
-					+ " username=" + link.username()
-					+ " firstSeen=" + link.firstSeen()
-					+ " lastSeen=" + link.lastSeen()
-					+ " timesSeen=" + link.timesSeen()
+			invocation.source().sendMessage(strings().component(
+				"lookup.ip-correlation",
+				"uuid", link.uuid().toString(),
+				"username", link.username(),
+				"first_seen", String.valueOf(link.firstSeen()),
+				"last_seen", String.valueOf(link.lastSeen()),
+				"times_seen", Long.toString(link.timesSeen())
 			));
-			invocation.source().sendMessage(Component.text(
-				"  geo=" + summarizeGeo(link.geoStatus(), link.city(), link.region(), link.country(), link.countryCode(), link.timezone(), link.latitude(), link.longitude(), link.geoMessage())
+			invocation.source().sendMessage(strings().component(
+				"lookup.geo",
+				"geo", summarizeGeo(link.geoStatus(), link.city(), link.region(), link.country(), link.countryCode(), link.timezone(), link.latitude(), link.longitude(), link.geoMessage())
 			));
 		}
 	}
 
 	private void sendPlayerInfo(final Invocation invocation, final IpLoggerRepository.PlayerInfoView player) {
-		invocation.source().sendMessage(Component.text(
-			"Player uuid=" + player.uuid()
-				+ " username=" + player.username()
-				+ " firstSeen=" + player.firstSeen()
-				+ " lastSeen=" + player.lastSeen()
-				+ " lastIp=" + player.lastIp()
+		invocation.source().sendMessage(strings().component(
+			"lookup.player",
+			"uuid", player.uuid().toString(),
+			"username", player.username(),
+			"first_seen", String.valueOf(player.firstSeen()),
+			"last_seen", String.valueOf(player.lastSeen()),
+			"last_ip", player.lastIp()
 		));
 
 		if (player.ipLinks().isEmpty()) {
-			invocation.source().sendMessage(Component.text("  No IP links recorded."));
+			invocation.source().sendMessage(strings().component("lookup.no-ip-links"));
 			return;
 		}
 
-		invocation.source().sendMessage(Component.text("  Linked IPs: " + player.ipLinks().size()));
+		invocation.source().sendMessage(strings().component("lookup.linked-ips", "count", Integer.toString(player.ipLinks().size())));
 		for (final IpLoggerRepository.IpLinkView ipLink : player.ipLinks()) {
-			invocation.source().sendMessage(Component.text(
-				"  - ip=" + ipLink.ip()
-					+ " firstSeen=" + ipLink.firstSeen()
-					+ " lastSeen=" + ipLink.lastSeen()
-					+ " timesSeen=" + ipLink.timesSeen()
+			invocation.source().sendMessage(strings().component(
+				"lookup.ip-link",
+				"ip", ipLink.ip(),
+				"first_seen", String.valueOf(ipLink.firstSeen()),
+				"last_seen", String.valueOf(ipLink.lastSeen()),
+				"times_seen", Long.toString(ipLink.timesSeen())
 			));
-			invocation.source().sendMessage(Component.text(
-				"    geo=" + summarizeGeo(ipLink.geoStatus(), ipLink.city(), ipLink.region(), ipLink.country(), ipLink.countryCode(), ipLink.timezone(), ipLink.latitude(), ipLink.longitude(), ipLink.geoMessage())
+			invocation.source().sendMessage(strings().component(
+				"lookup.geo.indented",
+				"geo", summarizeGeo(ipLink.geoStatus(), ipLink.city(), ipLink.region(), ipLink.country(), ipLink.countryCode(), ipLink.timezone(), ipLink.latitude(), ipLink.longitude(), ipLink.geoMessage())
 			));
 		}
 	}
@@ -222,15 +217,18 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 		final String longitude,
 		final String message
 	) {
-		return "status=" + nullToEmpty(status)
-			+ " city=" + nullToEmpty(city)
-			+ " region=" + nullToEmpty(region)
-			+ " country=" + nullToEmpty(country)
-			+ " countryCode=" + nullToEmpty(countryCode)
-			+ " timezone=" + nullToEmpty(timezone)
-			+ " lat=" + nullToEmpty(latitude)
-			+ " lon=" + nullToEmpty(longitude)
-			+ " message=" + nullToEmpty(message);
+		return strings().format(
+			"lookup.geo-summary",
+			"status", nullToEmpty(status),
+			"city", nullToEmpty(city),
+			"region", nullToEmpty(region),
+			"country", nullToEmpty(country),
+			"country_code", nullToEmpty(countryCode),
+			"timezone", nullToEmpty(timezone),
+			"lat", nullToEmpty(latitude),
+			"lon", nullToEmpty(longitude),
+			"message", nullToEmpty(message)
+		);
 	}
 
 	private String nullToEmpty(final String value) {
@@ -238,9 +236,17 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 	}
 
 	private void sendUsage(final Invocation invocation) {
-		invocation.source().sendMessage(Component.text("Usage: /viplookup <uuid|username|ip> <value>"));
-		invocation.source().sendMessage(Component.text("Usage: /viplookup reload"));
-		invocation.source().sendMessage(Component.text("Usage: /viplookup updatedb"));
-		invocation.source().sendMessage(Component.text("Usage: /viplookup checkupdates"));
+		invocation.source().sendMessage(strings().component("usage.lookup"));
+		invocation.source().sendMessage(strings().component("usage.reload"));
+		invocation.source().sendMessage(strings().component("usage.updatedb"));
+		invocation.source().sendMessage(strings().component("usage.checkupdates"));
+	}
+
+	private Component prefixed(final String message) {
+		return Component.text(strings().get("prefix") + " " + message);
+	}
+
+	private PluginStrings strings() {
+		return plugin.strings();
 	}
 }

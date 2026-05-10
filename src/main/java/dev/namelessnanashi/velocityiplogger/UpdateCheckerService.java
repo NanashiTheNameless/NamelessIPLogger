@@ -26,22 +26,27 @@ import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 final class UpdateCheckerService {
 	private static final URI RELEASES_ENDPOINT = URI.create("https://api.github.com/repos/NanashiTheNameless/VelocityIPLogger/releases");
 	private static final String IGNORED_TAG = "nightly";
-	private static final String UPDATE_NOTIFY_PERMISSION = "velocityiplogger.update.notify";
-	private static final String ADMIN_PERMISSION = "velocityiplogger.admin";
 	private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(4);
 
 	private final ComponentLogger logger;
 	private final ProxyServer proxyServer;
 	private final PluginConfig config;
+	private final PluginStrings strings;
 	private final HttpClient httpClient;
 	private final ObjectMapper objectMapper;
 	private volatile Release latestAvailableRelease;
 	private ScheduledExecutorService scheduler;
 
-	UpdateCheckerService(final ComponentLogger logger, final ProxyServer proxyServer, final PluginConfig config) {
+	UpdateCheckerService(
+		final ComponentLogger logger,
+		final ProxyServer proxyServer,
+		final PluginConfig config,
+		final PluginStrings strings
+	) {
 		this.logger = logger;
 		this.proxyServer = proxyServer;
 		this.config = config;
+		this.strings = strings;
 		this.httpClient = HttpClient.newBuilder()
 			.connectTimeout(REQUEST_TIMEOUT)
 			.build();
@@ -93,7 +98,7 @@ final class UpdateCheckerService {
 	private UpdateCheckResult performCheck(final boolean notifyAdmins) {
 		try {
 			if (!isEndpointHostAllowed()) {
-				final String message = "Update check skipped because endpoint resolved to a private, link-local, loopback, or otherwise unsafe address: " + RELEASES_ENDPOINT;
+				final String message = strings.format("updates.endpoint-blocked", "endpoint", RELEASES_ENDPOINT.toString());
 				logger.warn(message);
 				return new UpdateCheckResult(false, false, message);
 			}
@@ -106,13 +111,13 @@ final class UpdateCheckerService {
 				.build();
 			final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 			if (response.statusCode() < 200 || response.statusCode() >= 300) {
-				return new UpdateCheckResult(false, false, "Update check failed with HTTP status " + response.statusCode() + ".");
+				return new UpdateCheckResult(false, false, strings.format("updates.http-failure", "status", Integer.toString(response.statusCode())));
 			}
 
 			final Release latestRelease = latestRelease(response.body());
 			if (latestRelease == null) {
 				latestAvailableRelease = null;
-				return new UpdateCheckResult(true, false, "No applicable stable GitHub releases were found.");
+				return new UpdateCheckResult(true, false, strings.get("updates.no-release"));
 			}
 
 			if (compareVersions(latestRelease.version(), Constants.VERSION) > 0) {
@@ -129,17 +134,22 @@ final class UpdateCheckerService {
 				return new UpdateCheckResult(
 					true,
 					true,
-					"Update available: current=" + Constants.VERSION + " latest=" + latestRelease.tagName() + " " + latestRelease.url()
+					strings.format(
+						"updates.available",
+						"current", Constants.VERSION,
+						"latest", latestRelease.tagName(),
+						"url", latestRelease.url()
+					)
 				);
 			}
 
 			latestAvailableRelease = null;
-			return new UpdateCheckResult(true, false, "VelocityIPLogger is up to date. Current version: " + Constants.VERSION + ".");
+			return new UpdateCheckResult(true, false, strings.format("updates.current", "current", Constants.VERSION));
 		} catch (final InterruptedException exception) {
 			Thread.currentThread().interrupt();
-			return new UpdateCheckResult(false, false, "Update check interrupted.");
+			return new UpdateCheckResult(false, false, strings.get("updates.interrupted"));
 		} catch (final Exception exception) {
-			return new UpdateCheckResult(false, false, "Update check failed: " + (exception.getMessage() == null ? "unknown error" : exception.getMessage()));
+			return new UpdateCheckResult(false, false, strings.format("updates.failure", "error", exception.getMessage() == null ? "unknown error" : exception.getMessage()));
 		}
 	}
 
@@ -160,18 +170,16 @@ final class UpdateCheckerService {
 	}
 
 	private static boolean shouldNotify(final Player player) {
-		return player.hasPermission(UPDATE_NOTIFY_PERMISSION) || player.hasPermission(ADMIN_PERMISSION);
+		return player.hasPermission(PluginPermissions.UPDATE_NOTIFY) || player.hasPermission(PluginPermissions.ADMIN);
 	}
 
-	private static Component updateMessage(final Release update) {
-		return Component.text(
-			"[VelocityIPLogger] Update available: current="
-				+ Constants.VERSION
-				+ " latest="
-				+ update.tagName()
-				+ " "
-				+ update.url()
-		);
+	private Component updateMessage(final Release update) {
+		return Component.text(strings.get("prefix") + " " + strings.format(
+			"updates.available",
+			"current", Constants.VERSION,
+			"latest", update.tagName(),
+			"url", update.url()
+		));
 	}
 
 	private Release latestRelease(final String responseBody) throws IOException {

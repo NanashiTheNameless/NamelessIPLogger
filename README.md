@@ -37,6 +37,7 @@ Data storage location:
 - `plugins/velocityiplogger/players.tsv`
 - `plugins/velocityiplogger/ip_links.tsv`
 - `plugins/velocityiplogger/connection_events.tsv`
+- `plugins/velocityiplogger/strings.yml` (customizable command/chat messages)
 - `plugins/velocityiplogger/telemetry-instance-id.txt` (anonymous telemetry instance UUID, when telemetry is enabled)
 
 Network access behavior:
@@ -86,6 +87,7 @@ After the database is present, lookups are done locally against the MMDB file.
 The plugin writes a default config at first startup:
 
 - `plugins/velocityiplogger/config.yml`
+- `plugins/velocityiplogger/strings.yml`
 
 Example:
 
@@ -231,6 +233,11 @@ Update notifications:
 - Velocity does not have Bukkit-style OPs, so chat notices are sent to players with `velocityiplogger.update.notify` or `velocityiplogger.admin`.
 - Admins who join after an update was found also receive the notice.
 
+Permissions:
+
+- `velocityiplogger.admin`: allows player use of `/viplookup` commands when `commands.allow-admin-permission` is enabled; also receives update notices.
+- `velocityiplogger.update.notify`: receives update notices without granting command access.
+
 Config migration:
 
 - `config.version` is managed by the plugin and should not be edited.
@@ -247,6 +254,14 @@ Telemetry shared data:
 - `projectname` / `project`: `VelocityIPLogger`.
 - `count`: `1`.
 - Request headers include a plugin user agent and `X-Project-Name: VelocityIPLogger`.
+
+## Translation
+
+Command output and update notices can be translated in:
+
+- `plugins/velocityiplogger/strings.yml`
+
+Run `/viplookup reload` after editing the file. Keep placeholder names such as `{uuid}`, `{error}`, `{permission}`, `{current}`, `{latest}`, and `{url}` intact.
 
 ## Stored Data
 
