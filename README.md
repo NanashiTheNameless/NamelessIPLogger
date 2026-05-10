@@ -37,10 +37,15 @@ Data storage location:
 - `plugins/velocityiplogger/players.tsv`
 - `plugins/velocityiplogger/ip_links.tsv`
 - `plugins/velocityiplogger/connection_events.tsv`
+- `plugins/velocityiplogger/telemetry-instance-id.txt` (anonymous telemetry instance UUID, when telemetry is enabled)
 
 Network access behavior:
 
 - No per-player API requests are made for lookups.
+- Telemetry is enabled by default and sends anonymous census pings to [NamelessTelemetry](https://github.com/NanashiTheNameless/NamelessTelemetry); set `telemetry.enabled: "false"` to disable it.
+- Telemetry shares only a SHA-256 hash of the local telemetry instance ID, the UTC date, project name, and `count=1`. It does not send player UUIDs, usernames, player IPs, connection logs, or GeoIP data.
+- Telemetry only runs when its endpoint uses HTTPS.
+- Before each telemetry send, the endpoint host is resolved and private, link-local, loopback, any-local, multicast, and IPv6 unique-local addresses are denied.
 - The plugin only downloads GeoIP database files when needed (startup, staleness window, or manual update command).
 - DB-IP mode downloads from configured DB-IP URLs.
 - MaxMind mode downloads from configured MaxMind permalink template using account-id + license-key basic auth when provided.
@@ -93,6 +98,10 @@ Example:
 # - Apply edits with /viplookup reload (proxy restart is not required).
 # - Run /viplookup updatedb to force immediate GeoIP database redownload.
 # - Quote values to avoid YAML parser edge cases.
+
+# Config schema version. Do not edit.
+# The plugin uses this to migrate older configs while preserving known settings.
+config.version: "1"
 
 # GeoIP provider: dbip | maxmind-geolite2
 # Provider guidance:
@@ -153,6 +162,15 @@ log.max-retention-days: "0"
 log.console-connect: "true"
 # Print disconnect logs to proxy console
 log.console-disconnect: "true"
+
+# Telemetry
+# Sends anonymous census pings to NamelessTelemetry:
+# https://github.com/NanashiTheNameless/NamelessTelemetry
+# Shared payload: SHA-256 hash of the instance ID, UTC date, project name, and count=1.
+# No player UUIDs, usernames, player IPs, connection logs, or GeoIP data are sent.
+# The local instance ID is stored separately in telemetry-instance-id.txt.
+# Allowed values: true | false | on | off | 1 | 0. Recommended: true | false.
+telemetry.enabled: "true"
 ```
 
 To use MaxMind GeoLite2 City:
@@ -185,6 +203,24 @@ Logging option notes:
 - `log.max-retention-days`: prune rows older than this many days using event/last_seen timestamps (`0` disables pruning).
 - `log.console-connect`: write connect events to proxy console log.
 - `log.console-disconnect`: write disconnect events to proxy console log.
+- `telemetry.enabled`: send anonymous [NamelessTelemetry](https://github.com/NanashiTheNameless/NamelessTelemetry) census pings (`true` by default, set to `false` to disable; accepts `true`, `false`, `on`, `off`, `1`, or `0`).
+
+Config migration:
+
+- `config.version` is managed by the plugin and should not be edited.
+- When a missing, invalid, or out-of-date config version is detected at startup or reload, the plugin rewrites it using the current template.
+- Missing or invalid known settings also trigger migration.
+- Before migration, the previous file is backed up as `config.yml.<schema-version>.bak`; if the schema version is missing or invalid, it is backed up as `config.yml.bak`.
+- Valid known settings already present in the old config are preserved; missing or invalid known settings use current defaults.
+- Unrecognized settings are kept at the bottom of the file for manual review, but they are not read by the plugin.
+
+Telemetry shared data:
+
+- `id`: SHA-256 hash of `telemetry-instance-id.txt`; the raw local UUID is not sent.
+- `date`: current UTC date in `YYYY-MM-DD` format.
+- `projectname` / `project`: `VelocityIPLogger`.
+- `count`: `1`.
+- Request headers include a plugin user agent and `X-Project-Name: VelocityIPLogger`.
 
 ## Stored Data
 

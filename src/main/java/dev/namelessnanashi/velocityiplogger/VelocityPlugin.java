@@ -42,6 +42,7 @@ public final class VelocityPlugin {
 	private ExecutorService executor;
 	private IpLoggerRepository repository;
 	private volatile GeoIpService geoIpService;
+	private volatile TelemetryService telemetryService;
 	private volatile PluginConfig pluginConfig;
 	private final Object lifecycleLock = new Object();
 	
@@ -55,6 +56,8 @@ public final class VelocityPlugin {
 			geoIpService = new GeoIpService(logger, dataDirectory, pluginConfig);
 			repository.initialize();
 			geoIpService.initialize();
+			telemetryService = new TelemetryService(logger, dataDirectory, pluginConfig);
+			telemetryService.start();
 			registerCommands();
 			logger.info("VelocityIPLogger initialized. Data directory: {}", dataDirectory.toAbsolutePath().toString());
 		} catch (final Exception exception) {
@@ -116,6 +119,9 @@ public final class VelocityPlugin {
 		if (geoIpService != null) {
 			geoIpService.shutdown();
 		}
+		if (telemetryService != null) {
+			telemetryService.shutdown();
+		}
 	}
 
 	private String extractIp(final Player player) {
@@ -157,6 +163,11 @@ public final class VelocityPlugin {
 				if (repository != null) {
 					repository.setConfig(newConfig);
 				}
+				if (telemetryService != null) {
+					telemetryService.shutdown();
+				}
+				telemetryService = new TelemetryService(logger, dataDirectory, newConfig);
+				telemetryService.start();
 				if (previousService != null) {
 					previousService.shutdown();
 				}
