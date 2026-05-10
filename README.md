@@ -382,7 +382,7 @@ Examples:
 
 Nightly development builds are published automatically from the latest `main` or `master` branch changes, and can also be triggered manually.
 
-- `https://github.com/NanashiTheNameless/VelocityIPLogger/releases/tag/nightly`
+- `https://github.com/NanashiTheNameless/NamelessIPLogger/releases/tag/nightly`
 
 Nightly builds are intended for testing and may change more frequently than stable versioned releases. Built-in update checks ignore prereleases and the `nightly` tag.
 
