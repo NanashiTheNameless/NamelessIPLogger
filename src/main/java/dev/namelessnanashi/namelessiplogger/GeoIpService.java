@@ -128,11 +128,11 @@ public final class GeoIpService {
 			final String city = response.getCity() == null ? "" : safe(response.getCity().getName());
 			final String timezone = response.getLocation() == null ? "" : safe(response.getLocation().getTimeZone());
 			final String latitude = response.getLocation() == null || response.getLocation().getLatitude() == null
-				? ""
-				: Double.toString(response.getLocation().getLatitude());
+					? ""
+					: Double.toString(response.getLocation().getLatitude());
 			final String longitude = response.getLocation() == null || response.getLocation().getLongitude() == null
-				? ""
-				: Double.toString(response.getLocation().getLongitude());
+					? ""
+					: Double.toString(response.getLocation().getLongitude());
 
 			String region = "";
 			if (response.getSubdivisions() != null && !response.getSubdivisions().isEmpty()) {
@@ -152,20 +152,8 @@ public final class GeoIpService {
 				}
 			}
 
-			return new GeoIpInfo(
-				"success",
-				country,
-				countryCode,
-				region,
-				city,
-				timezone,
-				"",
-				asnNumber,
-				asnOrganization,
-				latitude,
-				longitude,
-				""
-			);
+			return new GeoIpInfo("success", country, countryCode, region, city, timezone, "", asnNumber,
+					asnOrganization, latitude, longitude, "");
 		} catch (final Exception exception) {
 			logger.warn("GeoIP lookup exception for ip={}: {}", ip, exception.getMessage());
 			return GeoIpInfo.unavailable();
@@ -173,12 +161,14 @@ public final class GeoIpService {
 	}
 
 	private void ensureDatabasePresent() throws IOException {
-		if (Files.notExists(cityDatabaseFile) || isStale(cityDatabaseFile) || Files.notExists(asnDatabaseFile) || isStale(asnDatabaseFile)) {
+		if (Files.notExists(cityDatabaseFile) || isStale(cityDatabaseFile) || Files.notExists(asnDatabaseFile)
+				|| isStale(asnDatabaseFile)) {
 			try {
 				downloadDatabase();
 			} catch (final IOException exception) {
 				if (Files.exists(cityDatabaseFile)) {
-					logger.warn("GeoIP database refresh failed. Using existing local database: {}", exception.getMessage());
+					logger.warn("GeoIP database refresh failed. Using existing local database: {}",
+							exception.getMessage());
 					return;
 				}
 				throw exception;
@@ -203,31 +193,19 @@ public final class GeoIpService {
 	private void downloadDbIp() throws IOException {
 		final String cityDownloadUrl = resolveDatePlaceholders(config.dbIpUrl());
 		logger.info("Downloading DB-IP city GeoIP database from {}", cityDownloadUrl);
-		downloadDbIpFile(
-			cityDownloadUrl,
-			cityDatabaseFile.resolveSibling("dbip-city-lite.mmdb.tmp"),
-			cityDatabaseFile,
-			"city"
-		);
+		downloadDbIpFile(cityDownloadUrl, cityDatabaseFile.resolveSibling("dbip-city-lite.mmdb.tmp"), cityDatabaseFile,
+				"city");
 
 		if (!config.dbIpAsnUrl().isBlank()) {
 			final String asnDownloadUrl = resolveDatePlaceholders(config.dbIpAsnUrl());
 			logger.info("Downloading DB-IP ASN GeoIP database from {}", asnDownloadUrl);
-			downloadDbIpFile(
-				asnDownloadUrl,
-				asnDatabaseFile.resolveSibling("dbip-asn-lite.mmdb.tmp"),
-				asnDatabaseFile,
-				"asn"
-			);
+			downloadDbIpFile(asnDownloadUrl, asnDatabaseFile.resolveSibling("dbip-asn-lite.mmdb.tmp"), asnDatabaseFile,
+					"asn");
 		}
 	}
 
-	private void downloadDbIpFile(
-		final String primaryUrl,
-		final Path tmpFile,
-		final Path targetFile,
-		final String label
-	) throws IOException {
+	private void downloadDbIpFile(final String primaryUrl, final Path tmpFile, final Path targetFile,
+			final String label) throws IOException {
 		IOException lastError = null;
 		for (final String candidateUrl : dbIpCandidateUrls(primaryUrl)) {
 			if (candidateUrl == null || candidateUrl.isBlank()) {
@@ -239,7 +217,8 @@ public final class GeoIpService {
 				return;
 			} catch (final IOException exception) {
 				lastError = exception;
-				logger.warn("Failed to download DB-IP {} database from {}: {}", label, candidateUrl, exception.getMessage());
+				logger.warn("Failed to download DB-IP {} database from {}: {}", label, candidateUrl,
+						exception.getMessage());
 			}
 		}
 
@@ -258,7 +237,8 @@ public final class GeoIpService {
 		if (primaryUrl.contains("-latest.")) {
 			YearMonth probeMonth = YearMonth.now();
 			for (int i = 0; i < 3; i++) {
-				final String monthlyUrl = primaryUrl.replace("-latest.", "-" + probeMonth.format(YEAR_MONTH_FORMAT) + ".");
+				final String monthlyUrl = primaryUrl.replace("-latest.",
+						"-" + probeMonth.format(YEAR_MONTH_FORMAT) + ".");
 				candidates.add(monthlyUrl);
 				candidates.add(dbIpFallbackUrl(monthlyUrl));
 				probeMonth = probeMonth.minusMonths(1);
@@ -276,35 +256,34 @@ public final class GeoIpService {
 		final String authorizationHeader = maxMindAuthorizationHeader();
 
 		final String downloadUrl = config.maxMindUrlTemplate()
-			.replace("{edition_id}", encode(config.maxMindEditionId()))
-			.replace("{license_key}", encode(config.maxMindLicenseKey()));
+				.replace("{edition_id}", encode(config.maxMindEditionId()))
+				.replace("{license_key}", encode(config.maxMindLicenseKey()));
 
 		logger.info("Downloading MaxMind GeoLite2 city database (edition={})", config.maxMindEditionId());
-		downloadAndExtractMaxMindMmdb(downloadUrl, cityDatabaseFile.resolveSibling("geolite2-city.mmdb.tmp"), cityDatabaseFile, authorizationHeader);
+		downloadAndExtractMaxMindMmdb(downloadUrl, cityDatabaseFile.resolveSibling("geolite2-city.mmdb.tmp"),
+				cityDatabaseFile, authorizationHeader);
 
 		if (!config.maxMindAsnEditionId().isBlank()) {
 			final String asnDownloadUrl = config.maxMindUrlTemplate()
-				.replace("{edition_id}", encode(config.maxMindAsnEditionId()))
-				.replace("{license_key}", encode(config.maxMindLicenseKey()));
+					.replace("{edition_id}", encode(config.maxMindAsnEditionId()))
+					.replace("{license_key}", encode(config.maxMindLicenseKey()));
 
 			logger.info("Downloading MaxMind GeoLite2 ASN database (edition={})", config.maxMindAsnEditionId());
-			downloadAndExtractMaxMindMmdb(asnDownloadUrl, asnDatabaseFile.resolveSibling("geolite2-asn.mmdb.tmp"), asnDatabaseFile, authorizationHeader);
+			downloadAndExtractMaxMindMmdb(asnDownloadUrl, asnDatabaseFile.resolveSibling("geolite2-asn.mmdb.tmp"),
+					asnDatabaseFile, authorizationHeader);
 		}
 	}
 
-	private void downloadAndExtractMaxMindMmdb(
-		final String downloadUrl,
-		final Path tmpFile,
-		final Path targetFile,
-		final String authorizationHeader
-	) throws IOException {
+	private void downloadAndExtractMaxMindMmdb(final String downloadUrl, final Path tmpFile, final Path targetFile,
+			final String authorizationHeader) throws IOException {
 		final String normalized = downloadUrl.toLowerCase(Locale.ROOT);
 		if (normalized.contains("suffix=zip") || normalized.endsWith(".zip")) {
 			downloadAndExtractMmdbZip(downloadUrl, tmpFile, targetFile, authorizationHeader);
 			return;
 		}
 
-		if (normalized.contains("suffix=tar.gz") || normalized.endsWith(".tar.gz") || normalized.contains("suffix=tgz")) {
+		if (normalized.contains("suffix=tar.gz") || normalized.endsWith(".tar.gz")
+				|| normalized.contains("suffix=tgz")) {
 			downloadAndExtractMmdbTarGz(downloadUrl, tmpFile, targetFile, authorizationHeader);
 			return;
 		}
@@ -317,16 +296,18 @@ public final class GeoIpService {
 		}
 	}
 
-	private void downloadAndExtractMmdbZip(final String downloadUrl, final Path tmpFile, final Path targetFile, final String authorizationHeader) throws IOException {
+	private void downloadAndExtractMmdbZip(final String downloadUrl, final Path tmpFile, final Path targetFile,
+			final String authorizationHeader) throws IOException {
 		boolean extracted = false;
 
 		try (InputStream stream = openHttpStream(downloadUrl, authorizationHeader);
-			 ZipInputStream zipInputStream = new ZipInputStream(stream)) {
+				ZipInputStream zipInputStream = new ZipInputStream(stream)) {
 
 			ZipEntry entry;
 			while ((entry = zipInputStream.getNextEntry()) != null) {
 				if (!entry.isDirectory() && entry.getName().endsWith(".mmdb")) {
-					try (OutputStream out = Files.newOutputStream(tmpFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+					try (OutputStream out = Files.newOutputStream(tmpFile, StandardOpenOption.CREATE,
+							StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
 						zipInputStream.transferTo(out);
 					}
 					extracted = true;
@@ -344,17 +325,19 @@ public final class GeoIpService {
 		logger.info("GeoIP database saved to {}", targetFile.toAbsolutePath().toString());
 	}
 
-	private void downloadAndExtractMmdbTarGz(final String downloadUrl, final Path tmpFile, final Path targetFile, final String authorizationHeader) throws IOException {
+	private void downloadAndExtractMmdbTarGz(final String downloadUrl, final Path tmpFile, final Path targetFile,
+			final String authorizationHeader) throws IOException {
 		boolean extracted = false;
 
 		try (InputStream stream = openHttpStream(downloadUrl, authorizationHeader);
-			 GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
-			 TarArchiveInputStream tarInputStream = new TarArchiveInputStream(gzipInputStream)) {
+				GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
+				TarArchiveInputStream tarInputStream = new TarArchiveInputStream(gzipInputStream)) {
 
 			TarArchiveEntry entry;
 			while ((entry = tarInputStream.getNextEntry()) != null) {
 				if (!entry.isDirectory() && entry.getName().endsWith(".mmdb")) {
-					try (OutputStream out = Files.newOutputStream(tmpFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+					try (OutputStream out = Files.newOutputStream(tmpFile, StandardOpenOption.CREATE,
+							StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
 						tarInputStream.transferTo(out);
 					}
 					extracted = true;
@@ -371,10 +354,12 @@ public final class GeoIpService {
 		logger.info("GeoIP database saved to {}", targetFile.toAbsolutePath().toString());
 	}
 
-	private void downloadAndExtractGzip(final String downloadUrl, final Path tmpFile, final Path targetFile) throws IOException {
+	private void downloadAndExtractGzip(final String downloadUrl, final Path tmpFile, final Path targetFile)
+			throws IOException {
 		try (InputStream stream = openHttpStream(downloadUrl);
-			 GZIPInputStream gzip = new GZIPInputStream(stream);
-			 OutputStream out = Files.newOutputStream(tmpFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+				GZIPInputStream gzip = new GZIPInputStream(stream);
+				OutputStream out = Files.newOutputStream(tmpFile, StandardOpenOption.CREATE,
+						StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
 			gzip.transferTo(out);
 		}
 
@@ -382,14 +367,16 @@ public final class GeoIpService {
 		logger.info("GeoIP database saved to {}", targetFile.toAbsolutePath().toString());
 	}
 
-	private void downloadAndExtractMmdb(final String downloadUrl, final Path tmpFile, final Path targetFile) throws IOException {
+	private void downloadAndExtractMmdb(final String downloadUrl, final Path tmpFile, final Path targetFile)
+			throws IOException {
 		if (downloadUrl.toLowerCase().endsWith(".gz")) {
 			downloadAndExtractGzip(downloadUrl, tmpFile, targetFile);
 			return;
 		}
 
 		try (InputStream stream = openHttpStream(downloadUrl);
-			 OutputStream out = Files.newOutputStream(tmpFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+				OutputStream out = Files.newOutputStream(tmpFile, StandardOpenOption.CREATE,
+						StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
 			stream.transferTo(out);
 		}
 
@@ -441,9 +428,7 @@ public final class GeoIpService {
 		}
 
 		final String currentYearMonth = YearMonth.now().format(YEAR_MONTH_FORMAT);
-		return url
-			.replace("YYYY-MM", currentYearMonth)
-			.replace("yyyy-MM", currentYearMonth);
+		return url.replace("YYYY-MM", currentYearMonth).replace("yyyy-MM", currentYearMonth);
 	}
 
 	private String maxMindAuthorizationHeader() {
@@ -475,10 +460,8 @@ public final class GeoIpService {
 		if (statusCode >= 400) {
 			connection.disconnect();
 			if (statusCode == 401 && downloadUrl.contains("download.maxmind.com")) {
-				throw new IOException(
-					"HTTP 401 for " + downloadUrl
-						+ " (MaxMind authentication failed: check geoip.maxmind.account-id, geoip.maxmind.license-key, and edition access)"
-				);
+				throw new IOException("HTTP 401 for " + downloadUrl
+						+ " (MaxMind authentication failed: check geoip.maxmind.account-id, geoip.maxmind.license-key, and edition access)");
 			}
 			throw new IOException("HTTP " + statusCode + " for " + downloadUrl);
 		}
@@ -498,14 +481,10 @@ public final class GeoIpService {
 	private void reopenReaders() throws IOException {
 		closeReaders();
 
-		cityReader = new DatabaseReader.Builder(cityDatabaseFile.toFile())
-			.withCache(new CHMCache())
-			.build();
+		cityReader = new DatabaseReader.Builder(cityDatabaseFile.toFile()).withCache(new CHMCache()).build();
 
 		if (Files.exists(asnDatabaseFile)) {
-			asnReader = new DatabaseReader.Builder(asnDatabaseFile.toFile())
-				.withCache(new CHMCache())
-				.build();
+			asnReader = new DatabaseReader.Builder(asnDatabaseFile.toFile()).withCache(new CHMCache()).build();
 		}
 
 		logger.info("GeoIP city database loaded from {}", cityDatabaseFile.toAbsolutePath().toString());
@@ -536,10 +515,8 @@ public final class GeoIpService {
 	private boolean isPrivateAddress(final String ip) {
 		try {
 			final InetAddress address = InetAddress.getByName(ip);
-			return address.isAnyLocalAddress()
-				|| address.isLoopbackAddress()
-				|| address.isLinkLocalAddress()
-				|| address.isSiteLocalAddress();
+			return address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
+					|| address.isSiteLocalAddress();
 		} catch (final UnknownHostException exception) {
 			return false;
 		}

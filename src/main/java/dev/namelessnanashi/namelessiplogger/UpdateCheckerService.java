@@ -24,7 +24,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 
 final class UpdateCheckerService {
-	private static final URI RELEASES_ENDPOINT = URI.create("https://api.github.com/repos/NanashiTheNameless/NamelessIPLogger/releases");
+	private static final URI RELEASES_ENDPOINT = URI
+			.create("https://api.github.com/repos/NanashiTheNameless/NamelessIPLogger/releases");
 	private static final String IGNORED_TAG = "nightly";
 	private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(4);
 
@@ -37,19 +38,13 @@ final class UpdateCheckerService {
 	private volatile Release latestAvailableRelease;
 	private ScheduledExecutorService scheduler;
 
-	UpdateCheckerService(
-		final ComponentLogger logger,
-		final ProxyServer proxyServer,
-		final PluginConfig config,
-		final PluginStrings strings
-	) {
+	UpdateCheckerService(final ComponentLogger logger, final ProxyServer proxyServer, final PluginConfig config,
+			final PluginStrings strings) {
 		this.logger = logger;
 		this.proxyServer = proxyServer;
 		this.config = config;
 		this.strings = strings;
-		this.httpClient = HttpClient.newBuilder()
-			.connectTimeout(REQUEST_TIMEOUT)
-			.build();
+		this.httpClient = HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build();
 		this.objectMapper = new ObjectMapper();
 	}
 
@@ -69,12 +64,8 @@ final class UpdateCheckerService {
 			return thread;
 		});
 		scheduler.execute(this::checkSafely);
-		scheduler.scheduleAtFixedRate(
-			this::checkSafely,
-			config.updateCheckIntervalHours(),
-			config.updateCheckIntervalHours(),
-			TimeUnit.HOURS
-		);
+		scheduler.scheduleAtFixedRate(this::checkSafely, config.updateCheckIntervalHours(),
+				config.updateCheckIntervalHours(), TimeUnit.HOURS);
 	}
 
 	void shutdown() {
@@ -98,20 +89,19 @@ final class UpdateCheckerService {
 	private UpdateCheckResult performCheck(final boolean notifyAdmins) {
 		try {
 			if (!isEndpointHostAllowed()) {
-				final String message = strings.format("updates.endpoint-blocked", "endpoint", RELEASES_ENDPOINT.toString());
+				final String message = strings.format("updates.endpoint-blocked", "endpoint",
+						RELEASES_ENDPOINT.toString());
 				logger.warn(message);
 				return new UpdateCheckResult(false, false, message);
 			}
 
-			final HttpRequest request = HttpRequest.newBuilder(RELEASES_ENDPOINT)
-				.timeout(REQUEST_TIMEOUT)
-				.header("Accept", "application/vnd.github+json")
-				.header("User-Agent", "NamelessIPLogger/" + Constants.VERSION + " update-checker")
-				.GET()
-				.build();
+			final HttpRequest request = HttpRequest.newBuilder(RELEASES_ENDPOINT).timeout(REQUEST_TIMEOUT)
+					.header("Accept", "application/vnd.github+json")
+					.header("User-Agent", "NamelessIPLogger/" + Constants.VERSION + " update-checker").GET().build();
 			final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 			if (response.statusCode() < 200 || response.statusCode() >= 300) {
-				return new UpdateCheckResult(false, false, strings.format("updates.http-failure", "status", Integer.toString(response.statusCode())));
+				return new UpdateCheckResult(false, false,
+						strings.format("updates.http-failure", "status", Integer.toString(response.statusCode())));
 			}
 
 			final Release latestRelease = latestRelease(response.body());
@@ -122,25 +112,13 @@ final class UpdateCheckerService {
 
 			if (compareVersions(latestRelease.version(), Constants.VERSION) > 0) {
 				latestAvailableRelease = latestRelease;
-				logger.info(
-					"NamelessIPLogger update available: current={} latest={} ({})",
-					Constants.VERSION,
-					latestRelease.tagName(),
-					latestRelease.url()
-				);
+				logger.info("NamelessIPLogger update available: current={} latest={} ({})", Constants.VERSION,
+						latestRelease.tagName(), latestRelease.url());
 				if (notifyAdmins) {
 					notifyOnlineAdmins(latestRelease);
 				}
-				return new UpdateCheckResult(
-					true,
-					true,
-					strings.format(
-						"updates.available",
-						"current", Constants.VERSION,
-						"latest", latestRelease.tagName(),
-						"url", latestRelease.url()
-					)
-				);
+				return new UpdateCheckResult(true, true, strings.format("updates.available", "current",
+						Constants.VERSION, "latest", latestRelease.tagName(), "url", latestRelease.url()));
 			}
 
 			latestAvailableRelease = null;
@@ -149,7 +127,8 @@ final class UpdateCheckerService {
 			Thread.currentThread().interrupt();
 			return new UpdateCheckResult(false, false, strings.get("updates.interrupted"));
 		} catch (final Exception exception) {
-			return new UpdateCheckResult(false, false, strings.format("updates.failure", "error", exception.getMessage() == null ? "unknown error" : exception.getMessage()));
+			return new UpdateCheckResult(false, false, strings.format("updates.failure", "error",
+					exception.getMessage() == null ? "unknown error" : exception.getMessage()));
 		}
 	}
 
@@ -174,12 +153,8 @@ final class UpdateCheckerService {
 	}
 
 	private Component updateMessage(final Release update) {
-		return Component.text(strings.get("prefix") + " " + strings.format(
-			"updates.available",
-			"current", Constants.VERSION,
-			"latest", update.tagName(),
-			"url", update.url()
-		));
+		return Component.text(strings.get("prefix") + " " + strings.format("updates.available", "current",
+				Constants.VERSION, "latest", update.tagName(), "url", update.url()));
 	}
 
 	private Release latestRelease(final String responseBody) throws IOException {
@@ -202,11 +177,8 @@ final class UpdateCheckerService {
 				continue;
 			}
 
-			final Release candidate = new Release(
-				tagName,
-				normalizeVersion(tagName),
-				release.path("html_url").asText("https://github.com/NanashiTheNameless/NamelessIPLogger/releases")
-			);
+			final Release candidate = new Release(tagName, normalizeVersion(tagName),
+					release.path("html_url").asText("https://github.com/NanashiTheNameless/NamelessIPLogger/releases"));
 			if (latest == null || compareVersions(candidate.version(), latest.version()) > 0) {
 				latest = candidate;
 			}
@@ -306,11 +278,8 @@ final class UpdateCheckerService {
 	}
 
 	private static boolean isAddressAllowed(final InetAddress address) {
-		if (address.isAnyLocalAddress()
-			|| address.isLoopbackAddress()
-			|| address.isLinkLocalAddress()
-			|| address.isSiteLocalAddress()
-			|| address.isMulticastAddress()) {
+		if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
+				|| address.isSiteLocalAddress() || address.isMulticastAddress()) {
 			return false;
 		}
 

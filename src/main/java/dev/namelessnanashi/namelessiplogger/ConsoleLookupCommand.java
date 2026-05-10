@@ -56,7 +56,8 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 			}
 			case "reload" -> handleReload(invocation, args.length);
 			case "updatedb", "update-db", "refreshdb" -> handleUpdateDb(invocation, args.length);
-			case "checkupdates", "checkupdate", "updatecheck", "update-check", "updates" -> handleCheckUpdates(invocation, args.length);
+			case "checkupdates", "checkupdate", "updatecheck", "update-check", "updates" ->
+				handleCheckUpdates(invocation, args.length);
 			default -> sendUsage(invocation);
 		}
 	}
@@ -75,13 +76,14 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 	}
 
 	private boolean hasCommandAccess(final Invocation invocation) {
-		return invocation.source() instanceof ConsoleCommandSource
-			|| (plugin.commandsAllowAdminPermission() && invocation.source().hasPermission(PluginPermissions.ADMIN));
+		return invocation.source() instanceof ConsoleCommandSource || (plugin.commandsAllowAdminPermission()
+				&& invocation.source().hasPermission(PluginPermissions.ADMIN));
 	}
 
 	private void sendAccessDenied(final Invocation invocation) {
 		if (plugin.commandsAllowAdminPermission()) {
-			invocation.source().sendMessage(strings().component("access.permission-required", "permission", PluginPermissions.ADMIN));
+			invocation.source().sendMessage(
+					strings().component("access.permission-required", "permission", PluginPermissions.ADMIN));
 			return;
 		}
 
@@ -145,7 +147,8 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 			return;
 		}
 
-		invocation.source().sendMessage(strings().component("lookup.matches.username", "username", username, "count", Integer.toString(players.size())));
+		invocation.source().sendMessage(strings().component("lookup.matches.username", "username", username, "count",
+				Integer.toString(players.size())));
 		for (final IpLoggerRepository.PlayerInfoView player : players) {
 			sendPlayerInfo(invocation, player);
 		}
@@ -158,77 +161,54 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 			return;
 		}
 
-		invocation.source().sendMessage(strings().component("lookup.matches.ip", "ip", ip, "count", Integer.toString(links.size())));
+		invocation.source().sendMessage(
+				strings().component("lookup.matches.ip", "ip", ip, "count", Integer.toString(links.size())));
 		for (final IpLoggerRepository.IpCorrelationView link : links) {
-			invocation.source().sendMessage(strings().component(
-				"lookup.ip-correlation",
-				"uuid", link.uuid().toString(),
-				"username", link.username(),
-				"first_seen", String.valueOf(link.firstSeen()),
-				"last_seen", String.valueOf(link.lastSeen()),
-				"times_seen", Long.toString(link.timesSeen())
-			));
-			invocation.source().sendMessage(strings().component(
-				"lookup.geo",
-				"geo", summarizeGeo(link.geoStatus(), link.city(), link.region(), link.country(), link.countryCode(), link.timezone(), link.latitude(), link.longitude(), link.geoMessage())
-			));
+			invocation.source()
+					.sendMessage(strings().component("lookup.ip-correlation", "uuid", link.uuid().toString(),
+							"username", link.username(), "first_seen", String.valueOf(link.firstSeen()), "last_seen",
+							String.valueOf(link.lastSeen()), "times_seen", Long.toString(link.timesSeen())));
+			invocation.source()
+					.sendMessage(strings().component("lookup.geo", "geo",
+							summarizeGeo(link.geoStatus(), link.city(), link.region(), link.country(),
+									link.countryCode(), link.timezone(), link.latitude(), link.longitude(),
+									link.geoMessage())));
 		}
 	}
 
 	private void sendPlayerInfo(final Invocation invocation, final IpLoggerRepository.PlayerInfoView player) {
-		invocation.source().sendMessage(strings().component(
-			"lookup.player",
-			"uuid", player.uuid().toString(),
-			"username", player.username(),
-			"first_seen", String.valueOf(player.firstSeen()),
-			"last_seen", String.valueOf(player.lastSeen()),
-			"last_ip", player.lastIp()
-		));
+		invocation.source()
+				.sendMessage(strings().component("lookup.player", "uuid", player.uuid().toString(), "username",
+						player.username(), "first_seen", String.valueOf(player.firstSeen()), "last_seen",
+						String.valueOf(player.lastSeen()), "last_ip", player.lastIp()));
 
 		if (player.ipLinks().isEmpty()) {
 			invocation.source().sendMessage(strings().component("lookup.no-ip-links"));
 			return;
 		}
 
-		invocation.source().sendMessage(strings().component("lookup.linked-ips", "count", Integer.toString(player.ipLinks().size())));
+		invocation.source().sendMessage(
+				strings().component("lookup.linked-ips", "count", Integer.toString(player.ipLinks().size())));
 		for (final IpLoggerRepository.IpLinkView ipLink : player.ipLinks()) {
-			invocation.source().sendMessage(strings().component(
-				"lookup.ip-link",
-				"ip", ipLink.ip(),
-				"first_seen", String.valueOf(ipLink.firstSeen()),
-				"last_seen", String.valueOf(ipLink.lastSeen()),
-				"times_seen", Long.toString(ipLink.timesSeen())
-			));
-			invocation.source().sendMessage(strings().component(
-				"lookup.geo.indented",
-				"geo", summarizeGeo(ipLink.geoStatus(), ipLink.city(), ipLink.region(), ipLink.country(), ipLink.countryCode(), ipLink.timezone(), ipLink.latitude(), ipLink.longitude(), ipLink.geoMessage())
-			));
+			invocation.source()
+					.sendMessage(strings().component("lookup.ip-link", "ip", ipLink.ip(), "first_seen",
+							String.valueOf(ipLink.firstSeen()), "last_seen", String.valueOf(ipLink.lastSeen()),
+							"times_seen", Long.toString(ipLink.timesSeen())));
+			invocation.source()
+					.sendMessage(strings().component("lookup.geo.indented", "geo",
+							summarizeGeo(ipLink.geoStatus(), ipLink.city(), ipLink.region(), ipLink.country(),
+									ipLink.countryCode(), ipLink.timezone(), ipLink.latitude(), ipLink.longitude(),
+									ipLink.geoMessage())));
 		}
 	}
 
-	private String summarizeGeo(
-		final String status,
-		final String city,
-		final String region,
-		final String country,
-		final String countryCode,
-		final String timezone,
-		final String latitude,
-		final String longitude,
-		final String message
-	) {
-		return strings().format(
-			"lookup.geo-summary",
-			"status", nullToEmpty(status),
-			"city", nullToEmpty(city),
-			"region", nullToEmpty(region),
-			"country", nullToEmpty(country),
-			"country_code", nullToEmpty(countryCode),
-			"timezone", nullToEmpty(timezone),
-			"lat", nullToEmpty(latitude),
-			"lon", nullToEmpty(longitude),
-			"message", nullToEmpty(message)
-		);
+	private String summarizeGeo(final String status, final String city, final String region, final String country,
+			final String countryCode, final String timezone, final String latitude, final String longitude,
+			final String message) {
+		return strings().format("lookup.geo-summary", "status", nullToEmpty(status), "city", nullToEmpty(city),
+				"region", nullToEmpty(region), "country", nullToEmpty(country), "country_code",
+				nullToEmpty(countryCode), "timezone", nullToEmpty(timezone), "lat", nullToEmpty(latitude), "lon",
+				nullToEmpty(longitude), "message", nullToEmpty(message));
 	}
 
 	private String nullToEmpty(final String value) {

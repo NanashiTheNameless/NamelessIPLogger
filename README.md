@@ -324,7 +324,7 @@ Append-only event log:
 
 Requirements:
 
-- Java 17+
+- Java 21+
 - Gradle (or use the included wrapper)
 
 Build command:
@@ -332,6 +332,13 @@ Build command:
 ```bash
 ./gradlew clean
 ./gradlew build
+```
+
+Quality checks:
+
+```bash
+./gradlew spotlessCheck
+./gradlew test jacocoTestReport
 ```
 
 Output jar:

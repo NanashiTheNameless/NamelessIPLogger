@@ -26,13 +26,8 @@ import com.velocitypowered.api.proxy.ProxyServer;
 
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 
-@Plugin(
-	id = "namelessiplogger",
-	name = "NamelessIPLogger",
-	description = "Correlated IP, identity and connection logger with GeoIP lookups",
-	version = Constants.VERSION,
-	authors = { "NanashiTheNameless" }
-)
+@Plugin(id = "namelessiplogger", name = "NamelessIPLogger", description = "Correlated IP, identity and connection logger with GeoIP lookups", version = Constants.VERSION, authors = {
+		"NanashiTheNameless"})
 public final class VelocityPlugin {
 	@Inject
 	private ComponentLogger logger;
@@ -52,7 +47,7 @@ public final class VelocityPlugin {
 	private volatile PluginConfig pluginConfig;
 	private volatile PluginStrings pluginStrings = PluginStrings.defaults();
 	private final Object lifecycleLock = new Object();
-	
+
 	@Subscribe
 	void onProxyInitialization(final ProxyInitializeEvent event) {
 		executor = Executors.newFixedThreadPool(2);
@@ -91,11 +86,12 @@ public final class VelocityPlugin {
 		executor.submit(() -> {
 			try {
 				final GeoIpInfo geoIpInfo = pluginConfig.logIncludeGeoIp() && pluginConfig.logIncludeIp()
-					? geoIpService.lookup(rawIp)
-					: GeoIpInfo.unavailable();
+						? geoIpService.lookup(rawIp)
+						: GeoIpInfo.unavailable();
 				repository.recordConnect(uuid, username, ip, now, geoIpInfo);
 				if (pluginConfig.logConsoleConnect()) {
-					logger.info("Connected user={} uuid={} ip={} geo={}", username, uuid, ip, geoIpInfo.shortDescription());
+					logger.info("Connected user={} uuid={} ip={} geo={}", username, uuid, ip,
+							geoIpInfo.shortDescription());
 				}
 			} catch (final Exception exception) {
 				logger.error("Failed to record connect event for {} ({})", rawUsername, uuid, exception);
@@ -155,28 +151,20 @@ public final class VelocityPlugin {
 	}
 
 	private void registerCommands() {
-		final CommandMeta lookupMeta = proxyServer.getCommandManager()
-			.metaBuilder("niplookup")
-			.aliases("niplog", "iplookup", "iplog")
-			.hint(commandHint("niplookup"))
-			.hint(commandHint("niplog"))
-			.hint(commandHint("iplookup"))
-			.hint(commandHint("iplog"))
-			.plugin(this)
-			.build();
+		final CommandMeta lookupMeta = proxyServer.getCommandManager().metaBuilder("niplookup")
+				.aliases("niplog", "iplookup", "iplog").hint(commandHint("niplookup")).hint(commandHint("niplog"))
+				.hint(commandHint("iplookup")).hint(commandHint("iplog")).plugin(this).build();
 
 		proxyServer.getCommandManager().register(lookupMeta, new ConsoleLookupCommand(repository, this));
 	}
 
 	private CommandNode<CommandSource> commandHint(final String commandName) {
-		return LiteralArgumentBuilder.<CommandSource>literal(commandName)
-			.requires(this::canUseLookupCommand)
-			.build();
+		return LiteralArgumentBuilder.<CommandSource>literal(commandName).requires(this::canUseLookupCommand).build();
 	}
 
 	private boolean canUseLookupCommand(final CommandSource source) {
 		return source instanceof ConsoleCommandSource
-			|| (commandsAllowAdminPermission() && source.hasPermission(PluginPermissions.ADMIN));
+				|| (commandsAllowAdminPermission() && source.hasPermission(PluginPermissions.ADMIN));
 	}
 
 	public ReloadResult reloadConfiguration() {
@@ -230,7 +218,8 @@ public final class VelocityPlugin {
 				return new ReloadResult(true, strings().get("geoip.update.success"));
 			} catch (final Exception exception) {
 				logger.error("Failed to update GeoIP databases", exception);
-				return new ReloadResult(false, strings().format("geoip.update.failure", "error", errorMessage(exception)));
+				return new ReloadResult(false,
+						strings().format("geoip.update.failure", "error", errorMessage(exception)));
 			}
 		}
 	}

@@ -1,34 +1,9 @@
 package dev.namelessnanashi.namelessiplogger;
 
-public record GeoIpInfo(
-	String status,
-	String country,
-	String countryCode,
-	String region,
-	String city,
-	String timezone,
-	String isp,
-	String asnNumber,
-	String asnOrganization,
-	String latitude,
-	String longitude,
-	String message
-) {
+public record GeoIpInfo(String status, String country, String countryCode, String region, String city, String timezone,
+		String isp, String asnNumber, String asnOrganization, String latitude, String longitude, String message) {
 	public static GeoIpInfo unavailable() {
-		return new GeoIpInfo(
-			"unavailable",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			""
-		);
+		return new GeoIpInfo("unavailable", "", "", "", "", "", "", "", "", "", "", "");
 	}
 
 	public boolean isSuccess() {

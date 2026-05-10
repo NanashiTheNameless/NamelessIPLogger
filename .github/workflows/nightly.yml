@@ -38,11 +38,11 @@ jobs:
           echo "git_sha7=$git_sha7" >> "$GITHUB_OUTPUT"
           echo "project_version=$project_version" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Azul Zulu JDK 17
+      - name: Set up Azul Zulu JDK 21
         uses: actions/setup-java@v5
         with:
           distribution: zulu
-          java-version: '17'
+          java-version: '21'
           cache: gradle
 
       - name: Make Gradle wrapper executable

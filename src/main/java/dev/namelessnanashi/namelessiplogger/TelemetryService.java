@@ -44,9 +44,7 @@ final class TelemetryService {
 		this.logger = logger;
 		this.dataDirectory = dataDirectory;
 		this.config = config;
-		this.httpClient = HttpClient.newBuilder()
-			.connectTimeout(REQUEST_TIMEOUT)
-			.build();
+		this.httpClient = HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build();
 	}
 
 	void start() {
@@ -72,12 +70,8 @@ final class TelemetryService {
 		});
 
 		scheduler.execute(this::sendSafely);
-		scheduler.scheduleAtFixedRate(
-			this::sendSafely,
-			secondsUntilNextEvenUtcHour(),
-			TimeUnit.HOURS.toSeconds(PERIOD_HOURS),
-			TimeUnit.SECONDS
-		);
+		scheduler.scheduleAtFixedRate(this::sendSafely, secondsUntilNextEvenUtcHour(),
+				TimeUnit.HOURS.toSeconds(PERIOD_HOURS), TimeUnit.SECONDS);
 	}
 
 	void shutdown() {
@@ -90,18 +84,18 @@ final class TelemetryService {
 	private void sendSafely() {
 		try {
 			if (!isEndpointHostAllowed()) {
-				logger.warn("Telemetry send skipped because endpoint resolved to a private, link-local, loopback, or otherwise unsafe address: {}", ENDPOINT);
+				logger.warn(
+						"Telemetry send skipped because endpoint resolved to a private, link-local, loopback, or otherwise unsafe address: {}",
+						ENDPOINT);
 				return;
 			}
 			final String instanceId = ensureInstanceId();
 			final String payload = payloadFor(instanceId);
-			final HttpRequest request = HttpRequest.newBuilder(ENDPOINT)
-				.timeout(REQUEST_TIMEOUT)
-				.header("Content-Type", "application/json")
-				.header("User-Agent", PROJECT_NAME + "/" + Constants.VERSION + " telemetry")
-				.header("X-Project-Name", PROJECT_NAME)
-				.POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
-				.build();
+			final HttpRequest request = HttpRequest.newBuilder(ENDPOINT).timeout(REQUEST_TIMEOUT)
+					.header("Content-Type", "application/json")
+					.header("User-Agent", PROJECT_NAME + "/" + Constants.VERSION + " telemetry")
+					.header("X-Project-Name", PROJECT_NAME)
+					.POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8)).build();
 
 			httpClient.send(request, HttpResponse.BodyHandlers.discarding());
 		} catch (final InterruptedException exception) {
@@ -126,11 +120,8 @@ final class TelemetryService {
 	}
 
 	private static boolean isAddressAllowed(final InetAddress address) {
-		if (address.isAnyLocalAddress()
-			|| address.isLoopbackAddress()
-			|| address.isLinkLocalAddress()
-			|| address.isSiteLocalAddress()
-			|| address.isMulticastAddress()) {
+		if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
+				|| address.isSiteLocalAddress() || address.isMulticastAddress()) {
 			return false;
 		}
 
@@ -159,27 +150,16 @@ final class TelemetryService {
 		}
 
 		final String created = UUID.randomUUID().toString();
-		Files.writeString(
-			instanceIdFile,
-			created + System.lineSeparator(),
-			StandardCharsets.UTF_8,
-			StandardOpenOption.CREATE,
-			StandardOpenOption.TRUNCATE_EXISTING,
-			StandardOpenOption.WRITE
-		);
+		Files.writeString(instanceIdFile, created + System.lineSeparator(), StandardCharsets.UTF_8,
+				StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
 		return created;
 	}
 
 	private static String payloadFor(final String instanceId) {
 		final String date = DateTimeFormatter.ISO_LOCAL_DATE.format(ZonedDateTime.now(ZoneOffset.UTC));
 		final String hashedId = sha256Hex(instanceId);
-		return "{"
-			+ "\"id\":\"" + hashedId + "\","
-			+ "\"date\":\"" + date + "\","
-			+ "\"projectname\":\"" + PROJECT_NAME + "\","
-			+ "\"project\":\"" + PROJECT_NAME + "\","
-			+ "\"count\":1"
-			+ "}";
+		return "{" + "\"id\":\"" + hashedId + "\"," + "\"date\":\"" + date + "\"," + "\"projectname\":\"" + PROJECT_NAME
+				+ "\"," + "\"project\":\"" + PROJECT_NAME + "\"," + "\"count\":1" + "}";
 	}
 
 	private static String sha256Hex(final String value) {
@@ -195,8 +175,8 @@ final class TelemetryService {
 		final ZonedDateTime now = Instant.now().atZone(ZoneOffset.UTC);
 		final ZonedDateTime base = now.withMinute(0).withSecond(0).withNano(0);
 		final ZonedDateTime next = base.getHour() % PERIOD_HOURS == 0
-			? base.plusHours(PERIOD_HOURS)
-			: base.plusHours(1);
+				? base.plusHours(PERIOD_HOURS)
+				: base.plusHours(1);
 		return Math.max(1, Duration.between(now, next).getSeconds());
 	}
 }

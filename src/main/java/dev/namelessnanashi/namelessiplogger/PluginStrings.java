@@ -29,7 +29,8 @@ public final class PluginStrings {
 		Files.createDirectories(dataDirectory);
 		final Path stringsFile = dataDirectory.resolve(FILE_NAME);
 		if (Files.notExists(stringsFile)) {
-			Files.writeString(stringsFile, defaultStringsFile(defaultValues()), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+			Files.writeString(stringsFile, defaultStringsFile(defaultValues()), StandardCharsets.UTF_8,
+					StandardOpenOption.CREATE_NEW);
 			logger.info("Created default strings file at {}", stringsFile.toAbsolutePath().toString());
 			return DEFAULT_INSTANCE;
 		}
@@ -44,14 +45,8 @@ public final class PluginStrings {
 		}
 
 		if (!loadedValues.keySet().containsAll(defaultValues().keySet())) {
-			Files.writeString(
-				stringsFile,
-				defaultStringsFile(mergedValues),
-				StandardCharsets.UTF_8,
-				StandardOpenOption.CREATE,
-				StandardOpenOption.TRUNCATE_EXISTING,
-				StandardOpenOption.WRITE
-			);
+			Files.writeString(stringsFile, defaultStringsFile(mergedValues), StandardCharsets.UTF_8,
+					StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
 			logger.info("Updated strings file at {}", stringsFile.toAbsolutePath().toString());
 		}
 
@@ -115,7 +110,8 @@ public final class PluginStrings {
 		values.put("geoip.service-unavailable", "GeoIP service is not initialized yet.");
 		values.put("updates.check.start", "Checking for updates now...");
 		values.put("updates.checker-unavailable", "Update checker is not initialized yet.");
-		values.put("updates.endpoint-blocked", "Update check skipped because endpoint resolved to a private, link-local, loopback, or otherwise unsafe address: {endpoint}");
+		values.put("updates.endpoint-blocked",
+				"Update check skipped because endpoint resolved to a private, link-local, loopback, or otherwise unsafe address: {endpoint}");
 		values.put("updates.http-failure", "Update check failed with HTTP status {status}.");
 		values.put("updates.no-release", "No applicable stable GitHub releases were found.");
 		values.put("updates.available", "Update available: current={current} latest={latest} {url}");
@@ -128,25 +124,28 @@ public final class PluginStrings {
 		values.put("lookup.no-records.ip", "No records found for IP {ip}");
 		values.put("lookup.matches.username", "Matches for username '{username}': {count}");
 		values.put("lookup.matches.ip", "Matches for IP {ip}: {count}");
-		values.put("lookup.player", "Player uuid={uuid} username={username} firstSeen={first_seen} lastSeen={last_seen} lastIp={last_ip}");
+		values.put("lookup.player",
+				"Player uuid={uuid} username={username} firstSeen={first_seen} lastSeen={last_seen} lastIp={last_ip}");
 		values.put("lookup.no-ip-links", "  No IP links recorded.");
 		values.put("lookup.linked-ips", "  Linked IPs: {count}");
 		values.put("lookup.ip-link", "  - ip={ip} firstSeen={first_seen} lastSeen={last_seen} timesSeen={times_seen}");
-		values.put("lookup.ip-correlation", "- uuid={uuid} username={username} firstSeen={first_seen} lastSeen={last_seen} timesSeen={times_seen}");
+		values.put("lookup.ip-correlation",
+				"- uuid={uuid} username={username} firstSeen={first_seen} lastSeen={last_seen} timesSeen={times_seen}");
 		values.put("lookup.geo", "  geo={geo}");
 		values.put("lookup.geo.indented", "    geo={geo}");
-		values.put("lookup.geo-summary", "status={status} city={city} region={region} country={country} countryCode={country_code} timezone={timezone} lat={lat} lon={lon} message={message}");
+		values.put("lookup.geo-summary",
+				"status={status} city={city} region={region} country={country} countryCode={country_code} timezone={timezone} lat={lat} lon={lon} message={message}");
 		return values;
 	}
 
 	private static String defaultStringsFile(final Map<String, String> values) {
 		final StringBuilder builder = new StringBuilder()
-			.append("# ============================================================================\n")
-			.append("# NamelessIPLogger - strings.yml\n")
-			.append("# ============================================================================\n")
-			.append("# Edit these messages to translate command and chat output.\n")
-			.append("# Keep placeholder names such as {uuid}, {error}, and {permission} intact.\n")
-			.append("# Quote values to avoid YAML parser edge cases.\n\n");
+				.append("# ============================================================================\n")
+				.append("# NamelessIPLogger - strings.yml\n")
+				.append("# ============================================================================\n")
+				.append("# Edit these messages to translate command and chat output.\n")
+				.append("# Keep placeholder names such as {uuid}, {error}, and {permission} intact.\n")
+				.append("# Quote values to avoid YAML parser edge cases.\n\n");
 		for (final Map.Entry<String, String> entry : values.entrySet()) {
 			builder.append(entry.getKey()).append(": ").append(quoteConfigValue(entry.getValue())).append("\n");
 		}

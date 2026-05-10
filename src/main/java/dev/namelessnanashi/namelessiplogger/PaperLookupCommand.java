@@ -3,7 +3,6 @@ package dev.namelessnanashi.namelessiplogger;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.TabCompleter;
 
 import java.util.Arrays;
@@ -21,7 +20,8 @@ public final class PaperLookupCommand implements CommandExecutor, TabCompleter {
 	}
 
 	@Override
-	public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args) {
+	public boolean onCommand(final CommandSender sender, final Command command, final String label,
+			final String[] args) {
 		if (!hasCommandAccess(sender)) {
 			sendAccessDenied(sender);
 			return true;
@@ -57,7 +57,8 @@ public final class PaperLookupCommand implements CommandExecutor, TabCompleter {
 			}
 			case "reload" -> handleReload(sender, args.length);
 			case "updatedb", "update-db", "refreshdb" -> handleUpdateDb(sender, args.length);
-			case "checkupdates", "checkupdate", "updatecheck", "update-check", "updates" -> handleCheckUpdates(sender, args.length);
+			case "checkupdates", "checkupdate", "updatecheck", "update-check", "updates" ->
+				handleCheckUpdates(sender, args.length);
 			default -> sendUsage(sender);
 		}
 
@@ -65,7 +66,8 @@ public final class PaperLookupCommand implements CommandExecutor, TabCompleter {
 	}
 
 	@Override
-	public List<String> onTabComplete(final CommandSender sender, final Command command, final String alias, final String[] args) {
+	public List<String> onTabComplete(final CommandSender sender, final Command command, final String alias,
+			final String[] args) {
 		if (!hasCommandAccess(sender)) {
 			return List.of();
 		}
@@ -146,7 +148,8 @@ public final class PaperLookupCommand implements CommandExecutor, TabCompleter {
 			return;
 		}
 
-		sender.sendMessage(strings().format("lookup.matches.username", "username", username, "count", Integer.toString(players.size())));
+		sender.sendMessage(strings().format("lookup.matches.username", "username", username, "count",
+				Integer.toString(players.size())));
 		for (final IpLoggerRepository.PlayerInfoView player : players) {
 			sendPlayerInfo(sender, player);
 		}
@@ -161,30 +164,19 @@ public final class PaperLookupCommand implements CommandExecutor, TabCompleter {
 
 		sender.sendMessage(strings().format("lookup.matches.ip", "ip", ip, "count", Integer.toString(links.size())));
 		for (final IpLoggerRepository.IpCorrelationView link : links) {
-			sender.sendMessage(strings().format(
-				"lookup.ip-correlation",
-				"uuid", link.uuid().toString(),
-				"username", link.username(),
-				"first_seen", String.valueOf(link.firstSeen()),
-				"last_seen", String.valueOf(link.lastSeen()),
-				"times_seen", Long.toString(link.timesSeen())
-			));
-			sender.sendMessage(strings().format(
-				"lookup.geo",
-				"geo", summarizeGeo(link.geoStatus(), link.city(), link.region(), link.country(), link.countryCode(), link.timezone(), link.latitude(), link.longitude(), link.geoMessage())
-			));
+			sender.sendMessage(strings().format("lookup.ip-correlation", "uuid", link.uuid().toString(), "username",
+					link.username(), "first_seen", String.valueOf(link.firstSeen()), "last_seen",
+					String.valueOf(link.lastSeen()), "times_seen", Long.toString(link.timesSeen())));
+			sender.sendMessage(strings().format("lookup.geo", "geo",
+					summarizeGeo(link.geoStatus(), link.city(), link.region(), link.country(), link.countryCode(),
+							link.timezone(), link.latitude(), link.longitude(), link.geoMessage())));
 		}
 	}
 
 	private void sendPlayerInfo(final CommandSender sender, final IpLoggerRepository.PlayerInfoView player) {
-		sender.sendMessage(strings().format(
-			"lookup.player",
-			"uuid", player.uuid().toString(),
-			"username", player.username(),
-			"first_seen", String.valueOf(player.firstSeen()),
-			"last_seen", String.valueOf(player.lastSeen()),
-			"last_ip", player.lastIp()
-		));
+		sender.sendMessage(strings().format("lookup.player", "uuid", player.uuid().toString(), "username",
+				player.username(), "first_seen", String.valueOf(player.firstSeen()), "last_seen",
+				String.valueOf(player.lastSeen()), "last_ip", player.lastIp()));
 
 		if (player.ipLinks().isEmpty()) {
 			sender.sendMessage(strings().get("lookup.no-ip-links"));
@@ -193,43 +185,23 @@ public final class PaperLookupCommand implements CommandExecutor, TabCompleter {
 
 		sender.sendMessage(strings().format("lookup.linked-ips", "count", Integer.toString(player.ipLinks().size())));
 		for (final IpLoggerRepository.IpLinkView ipLink : player.ipLinks()) {
-			sender.sendMessage(strings().format(
-				"lookup.ip-link",
-				"ip", ipLink.ip(),
-				"first_seen", String.valueOf(ipLink.firstSeen()),
-				"last_seen", String.valueOf(ipLink.lastSeen()),
-				"times_seen", Long.toString(ipLink.timesSeen())
-			));
-			sender.sendMessage(strings().format(
-				"lookup.geo.indented",
-				"geo", summarizeGeo(ipLink.geoStatus(), ipLink.city(), ipLink.region(), ipLink.country(), ipLink.countryCode(), ipLink.timezone(), ipLink.latitude(), ipLink.longitude(), ipLink.geoMessage())
-			));
+			sender.sendMessage(strings().format("lookup.ip-link", "ip", ipLink.ip(), "first_seen",
+					String.valueOf(ipLink.firstSeen()), "last_seen", String.valueOf(ipLink.lastSeen()), "times_seen",
+					Long.toString(ipLink.timesSeen())));
+			sender.sendMessage(strings().format("lookup.geo.indented", "geo",
+					summarizeGeo(ipLink.geoStatus(), ipLink.city(), ipLink.region(), ipLink.country(),
+							ipLink.countryCode(), ipLink.timezone(), ipLink.latitude(), ipLink.longitude(),
+							ipLink.geoMessage())));
 		}
 	}
 
-	private String summarizeGeo(
-		final String status,
-		final String city,
-		final String region,
-		final String country,
-		final String countryCode,
-		final String timezone,
-		final String latitude,
-		final String longitude,
-		final String message
-	) {
-		return strings().format(
-			"lookup.geo-summary",
-			"status", nullToEmpty(status),
-			"city", nullToEmpty(city),
-			"region", nullToEmpty(region),
-			"country", nullToEmpty(country),
-			"country_code", nullToEmpty(countryCode),
-			"timezone", nullToEmpty(timezone),
-			"lat", nullToEmpty(latitude),
-			"lon", nullToEmpty(longitude),
-			"message", nullToEmpty(message)
-		);
+	private String summarizeGeo(final String status, final String city, final String region, final String country,
+			final String countryCode, final String timezone, final String latitude, final String longitude,
+			final String message) {
+		return strings().format("lookup.geo-summary", "status", nullToEmpty(status), "city", nullToEmpty(city),
+				"region", nullToEmpty(region), "country", nullToEmpty(country), "country_code",
+				nullToEmpty(countryCode), "timezone", nullToEmpty(timezone), "lat", nullToEmpty(latitude), "lon",
+				nullToEmpty(longitude), "message", nullToEmpty(message));
 	}
 
 	private String nullToEmpty(final String value) {

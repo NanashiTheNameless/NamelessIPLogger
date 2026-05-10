@@ -55,7 +55,8 @@ public final class PaperPlugin extends JavaPlugin implements Listener {
 			}
 
 			Bukkit.getPluginManager().registerEvents(this, this);
-			logger.info("NamelessIPLogger initialized on Paper. Data directory: {}", getDataFolder().toPath().toAbsolutePath().toString());
+			logger.info("NamelessIPLogger initialized on Paper. Data directory: {}",
+					getDataFolder().toPath().toAbsolutePath().toString());
 		} catch (final Exception exception) {
 			logger.error("Failed to initialize NamelessIPLogger on Paper", exception);
 			Bukkit.getPluginManager().disablePlugin(this);
@@ -95,11 +96,12 @@ public final class PaperPlugin extends JavaPlugin implements Listener {
 		executor.submit(() -> {
 			try {
 				final GeoIpInfo geoIpInfo = pluginConfig.logIncludeGeoIp() && pluginConfig.logIncludeIp()
-					? geoIpService.lookup(rawIp)
-					: GeoIpInfo.unavailable();
+						? geoIpService.lookup(rawIp)
+						: GeoIpInfo.unavailable();
 				repository.recordConnect(uuid, username, ip, now, geoIpInfo);
 				if (pluginConfig.logConsoleConnect()) {
-					logger.info("Connected user={} uuid={} ip={} geo={}", username, uuid, ip, geoIpInfo.shortDescription());
+					logger.info("Connected user={} uuid={} ip={} geo={}", username, uuid, ip,
+							geoIpInfo.shortDescription());
 				}
 			} catch (final Exception exception) {
 				logger.error("Failed to record connect event for {} ({})", rawUsername, uuid, exception);
@@ -144,7 +146,7 @@ public final class PaperPlugin extends JavaPlugin implements Listener {
 
 	boolean canUseLookupCommand(final CommandSender source) {
 		return source instanceof ConsoleCommandSender
-			|| (commandsAllowAdminPermission() && source.hasPermission(PluginPermissions.ADMIN));
+				|| (commandsAllowAdminPermission() && source.hasPermission(PluginPermissions.ADMIN));
 	}
 
 	public ReloadResult reloadConfiguration() {
@@ -198,7 +200,8 @@ public final class PaperPlugin extends JavaPlugin implements Listener {
 				return new ReloadResult(true, strings().get("geoip.update.success"));
 			} catch (final Exception exception) {
 				logger.error("Failed to update GeoIP databases", exception);
-				return new ReloadResult(false, strings().format("geoip.update.failure", "error", errorMessage(exception)));
+				return new ReloadResult(false,
+						strings().format("geoip.update.failure", "error", errorMessage(exception)));
 			}
 		}
 	}

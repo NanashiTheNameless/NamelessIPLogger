@@ -79,13 +79,8 @@ public final class IpLoggerRepository {
 		loadNextSessionId();
 	}
 
-	public void recordConnect(
-		final UUID uuid,
-		final String username,
-		final String ip,
-		final Instant now,
-		final GeoIpInfo geoIpInfo
-	) throws IOException {
+	public void recordConnect(final UUID uuid, final String username, final String ip, final Instant now,
+			final GeoIpInfo geoIpInfo) throws IOException {
 		lock.lock();
 		try {
 			pruneRetention(now);
@@ -122,13 +117,8 @@ public final class IpLoggerRepository {
 		}
 	}
 
-	public void recordDisconnect(
-		final UUID uuid,
-		final String username,
-		final String ip,
-		final Instant now,
-		final String reason
-	) throws IOException {
+	public void recordDisconnect(final UUID uuid, final String username, final String ip, final Instant now,
+			final String reason) throws IOException {
 		lock.lock();
 		try {
 			pruneRetention(now);
@@ -138,14 +128,16 @@ public final class IpLoggerRepository {
 			final long sessionId;
 			if (sessionStart != null) {
 				sessionId = sessionStart.sessionId();
-				durationSeconds = Long.toString(Math.max(0, Duration.between(sessionStart.connectedAt(), now).getSeconds()));
+				durationSeconds = Long
+						.toString(Math.max(0, Duration.between(sessionStart.connectedAt(), now).getSeconds()));
 			} else {
 				sessionId = -1L;
 				durationSeconds = "";
 			}
 
 			if (config.logWriteConnectionEvents()) {
-				appendConnectionEvent(now, "DISCONNECT", sessionId, uuid, username, ip, durationSeconds, reason == null ? "" : reason);
+				appendConnectionEvent(now, "DISCONNECT", sessionId, uuid, username, ip, durationSeconds,
+						reason == null ? "" : reason);
 			}
 		} finally {
 			lock.unlock();
@@ -168,7 +160,8 @@ public final class IpLoggerRepository {
 			}
 
 			linkedIps.sort(Comparator.comparing(IpLinkView::lastSeen).reversed());
-			return Optional.of(new PlayerInfoView(record.uuid(), record.username(), record.firstSeen(), record.lastSeen(), record.lastIp(), linkedIps));
+			return Optional.of(new PlayerInfoView(record.uuid(), record.username(), record.firstSeen(),
+					record.lastSeen(), record.lastIp(), linkedIps));
 		} finally {
 			lock.unlock();
 		}
@@ -190,7 +183,8 @@ public final class IpLoggerRepository {
 					}
 				}
 				linkedIps.sort(Comparator.comparing(IpLinkView::lastSeen).reversed());
-				results.add(new PlayerInfoView(playerRecord.uuid(), playerRecord.username(), playerRecord.firstSeen(), playerRecord.lastSeen(), playerRecord.lastIp(), linkedIps));
+				results.add(new PlayerInfoView(playerRecord.uuid(), playerRecord.username(), playerRecord.firstSeen(),
+						playerRecord.lastSeen(), playerRecord.lastIp(), linkedIps));
 			}
 
 			results.sort(Comparator.comparing(PlayerInfoView::lastSeen).reversed());
@@ -211,25 +205,12 @@ public final class IpLoggerRepository {
 
 				final PlayerRecord playerRecord = players.get(ipLinkRecord.uuid());
 				final String username = playerRecord == null ? "unknown" : playerRecord.username();
-				results.add(new IpCorrelationView(
-					ipLinkRecord.ip(),
-					ipLinkRecord.uuid(),
-					username,
-					ipLinkRecord.firstSeen(),
-					ipLinkRecord.lastSeen(),
-					ipLinkRecord.timesSeen(),
-					ipLinkRecord.countryCode(),
-					ipLinkRecord.country(),
-					ipLinkRecord.region(),
-					ipLinkRecord.city(),
-					ipLinkRecord.timezone(),
-					ipLinkRecord.asnNumber(),
-					ipLinkRecord.asnOrganization(),
-					ipLinkRecord.latitude(),
-					ipLinkRecord.longitude(),
-					ipLinkRecord.geoStatus(),
-					ipLinkRecord.geoMessage()
-				));
+				results.add(new IpCorrelationView(ipLinkRecord.ip(), ipLinkRecord.uuid(), username,
+						ipLinkRecord.firstSeen(), ipLinkRecord.lastSeen(), ipLinkRecord.timesSeen(),
+						ipLinkRecord.countryCode(), ipLinkRecord.country(), ipLinkRecord.region(), ipLinkRecord.city(),
+						ipLinkRecord.timezone(), ipLinkRecord.asnNumber(), ipLinkRecord.asnOrganization(),
+						ipLinkRecord.latitude(), ipLinkRecord.longitude(), ipLinkRecord.geoStatus(),
+						ipLinkRecord.geoMessage()));
 			}
 
 			results.sort(Comparator.comparing(IpCorrelationView::lastSeen).reversed());
@@ -240,23 +221,10 @@ public final class IpLoggerRepository {
 	}
 
 	private static IpLinkView toView(final IpLinkRecord record) {
-		return new IpLinkView(
-			record.ip(),
-			record.firstSeen(),
-			record.lastSeen(),
-			record.timesSeen(),
-			record.countryCode(),
-			record.country(),
-			record.region(),
-			record.city(),
-			record.timezone(),
-			record.asnNumber(),
-			record.asnOrganization(),
-			record.latitude(),
-			record.longitude(),
-			record.geoStatus(),
-			record.geoMessage()
-		);
+		return new IpLinkView(record.ip(), record.firstSeen(), record.lastSeen(), record.timesSeen(),
+				record.countryCode(), record.country(), record.region(), record.city(), record.timezone(),
+				record.asnNumber(), record.asnOrganization(), record.latitude(), record.longitude(), record.geoStatus(),
+				record.geoMessage());
 	}
 
 	private void loadPlayers() throws IOException {
@@ -271,14 +239,8 @@ public final class IpLoggerRepository {
 			try {
 				final UUID uuid = UUID.fromString(cols[0]);
 				final String knownIps = cols.length >= 6 ? cols[5] : safeIpList(cols[4]);
-				final PlayerRecord record = new PlayerRecord(
-					uuid,
-					cols[1],
-					Instant.parse(cols[2]),
-					Instant.parse(cols[3]),
-					cols[4],
-					knownIps
-				);
+				final PlayerRecord record = new PlayerRecord(uuid, cols[1], Instant.parse(cols[2]),
+						Instant.parse(cols[3]), cols[4], knownIps);
 				players.put(uuid, record);
 			} catch (final Exception exception) {
 				logger.warn("Failed to parse player row: {}", line);
@@ -299,45 +261,13 @@ public final class IpLoggerRepository {
 				final UUID uuid = UUID.fromString(cols[0]);
 				final IpLinkRecord record;
 				if (cols.length >= 17) {
-					record = new IpLinkRecord(
-						uuid,
-						cols[1],
-						Instant.parse(cols[2]),
-						Instant.parse(cols[3]),
-						Long.parseLong(cols[4]),
-						cols[5],
-						cols[6],
-						cols[7],
-						cols[8],
-						cols[9],
-						cols[10],
-						cols[11],
-						cols[12],
-						cols[13],
-						cols[14],
-						cols[15],
-						cols[16]
-					);
+					record = new IpLinkRecord(uuid, cols[1], Instant.parse(cols[2]), Instant.parse(cols[3]),
+							Long.parseLong(cols[4]), cols[5], cols[6], cols[7], cols[8], cols[9], cols[10], cols[11],
+							cols[12], cols[13], cols[14], cols[15], cols[16]);
 				} else {
-					record = new IpLinkRecord(
-						uuid,
-						cols[1],
-						Instant.parse(cols[2]),
-						Instant.parse(cols[3]),
-						Long.parseLong(cols[4]),
-						cols[5],
-						cols[6],
-						cols[7],
-						cols[8],
-						cols[9],
-						cols[10],
-						"",
-						"",
-						cols[11],
-						cols[12],
-						cols[13],
-						cols[14]
-					);
+					record = new IpLinkRecord(uuid, cols[1], Instant.parse(cols[2]), Instant.parse(cols[3]),
+							Long.parseLong(cols[4]), cols[5], cols[6], cols[7], cols[8], cols[9], cols[10], "", "",
+							cols[11], cols[12], cols[13], cols[14]);
 				}
 				ipLinks.put(key(uuid, cols[1]), record);
 			} catch (final Exception exception) {
@@ -368,80 +298,52 @@ public final class IpLoggerRepository {
 	}
 
 	private void persistPlayers() throws IOException {
-		try (BufferedWriter writer = Files.newBufferedWriter(playersFile, StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING)) {
+		try (BufferedWriter writer = Files.newBufferedWriter(playersFile, StandardCharsets.UTF_8,
+				StandardOpenOption.TRUNCATE_EXISTING)) {
 			writer.write(PLAYERS_HEADER);
-			players.values().stream()
-				.sorted(Comparator.comparing(PlayerRecord::lastSeen).reversed())
-				.forEach(record -> {
-					try {
-						writer.write(
-							record.uuid() + "\t"
-								+ sanitize(record.username()) + "\t"
-								+ record.firstSeen() + "\t"
-								+ record.lastSeen() + "\t"
-								+ sanitize(record.lastIp()) + "\t"
-								+ sanitize(record.knownIps()) + "\t"
-								+ countKnownIps(record.knownIps())
-								+ "\n"
-						);
-					} catch (final IOException ignored) {
-					}
-				});
+			players.values().stream().sorted(Comparator.comparing(PlayerRecord::lastSeen).reversed())
+					.forEach(record -> {
+						try {
+							writer.write(record.uuid() + "\t" + sanitize(record.username()) + "\t" + record.firstSeen()
+									+ "\t" + record.lastSeen() + "\t" + sanitize(record.lastIp()) + "\t"
+									+ sanitize(record.knownIps()) + "\t" + countKnownIps(record.knownIps()) + "\n");
+						} catch (final IOException ignored) {
+						}
+					});
 		}
 	}
 
 	private void persistIpLinks() throws IOException {
-		try (BufferedWriter writer = Files.newBufferedWriter(ipLinksFile, StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING)) {
+		try (BufferedWriter writer = Files.newBufferedWriter(ipLinksFile, StandardCharsets.UTF_8,
+				StandardOpenOption.TRUNCATE_EXISTING)) {
 			writer.write(IP_LINKS_HEADER);
-			ipLinks.values().stream()
-				.sorted(Comparator.comparing(IpLinkRecord::lastSeen).reversed())
-				.forEach(record -> {
-					try {
-						writer.write(
-							record.uuid() + "\t"
-								+ sanitize(record.ip()) + "\t"
-								+ record.firstSeen() + "\t"
-								+ record.lastSeen() + "\t"
-								+ record.timesSeen() + "\t"
-								+ sanitize(record.countryCode()) + "\t"
-								+ sanitize(record.country()) + "\t"
-								+ sanitize(record.region()) + "\t"
-								+ sanitize(record.city()) + "\t"
-								+ sanitize(record.timezone()) + "\t"
-								+ sanitize(record.isp()) + "\t"
-								+ sanitize(record.asnNumber()) + "\t"
-								+ sanitize(record.asnOrganization()) + "\t"
-								+ sanitize(record.latitude()) + "\t"
-								+ sanitize(record.longitude()) + "\t"
-								+ sanitize(record.geoStatus()) + "\t"
-								+ sanitize(record.geoMessage()) + "\t"
-								+ sanitize(geoSummary(record))
-								+ "\n"
-						);
-					} catch (final IOException ignored) {
-					}
-				});
+			ipLinks.values().stream().sorted(Comparator.comparing(IpLinkRecord::lastSeen).reversed())
+					.forEach(record -> {
+						try {
+							writer.write(record.uuid() + "\t" + sanitize(record.ip()) + "\t" + record.firstSeen() + "\t"
+									+ record.lastSeen() + "\t" + record.timesSeen() + "\t"
+									+ sanitize(record.countryCode()) + "\t" + sanitize(record.country()) + "\t"
+									+ sanitize(record.region()) + "\t" + sanitize(record.city()) + "\t"
+									+ sanitize(record.timezone()) + "\t" + sanitize(record.isp()) + "\t"
+									+ sanitize(record.asnNumber()) + "\t" + sanitize(record.asnOrganization()) + "\t"
+									+ sanitize(record.latitude()) + "\t" + sanitize(record.longitude()) + "\t"
+									+ sanitize(record.geoStatus()) + "\t" + sanitize(record.geoMessage()) + "\t"
+									+ sanitize(geoSummary(record)) + "\n");
+						} catch (final IOException ignored) {
+						}
+					});
 		}
 	}
 
-	private void appendConnectionEvent(
-		final Instant now,
-		final String eventType,
-		final long sessionId,
-		final UUID uuid,
-		final String username,
-		final String ip,
-		final String durationSeconds,
-		final String reason
-	) throws IOException {
+	private void appendConnectionEvent(final Instant now, final String eventType, final long sessionId, final UUID uuid,
+			final String username, final String ip, final String durationSeconds, final String reason)
+			throws IOException {
 		final String humanDuration = humanDuration(durationSeconds);
-		Files.writeString(
-			connectionEventsFile,
-			now + "\t" + eventType + "\t" + sessionId + "\t" + uuid + "\t" + sanitize(username) + "\t" + sanitize(ip)
-				+ "\t" + sanitize(durationSeconds) + "\t" + sanitize(reason) + "\t" + sanitize(humanDuration) + "\n",
-			StandardCharsets.UTF_8,
-			StandardOpenOption.APPEND
-		);
+		Files.writeString(connectionEventsFile,
+				now + "\t" + eventType + "\t" + sessionId + "\t" + uuid + "\t" + sanitize(username) + "\t"
+						+ sanitize(ip) + "\t" + sanitize(durationSeconds) + "\t" + sanitize(reason) + "\t"
+						+ sanitize(humanDuration) + "\n",
+				StandardCharsets.UTF_8, StandardOpenOption.APPEND);
 	}
 
 	private void pruneRetention(final Instant now) throws IOException {
@@ -496,7 +398,8 @@ public final class IpLoggerRepository {
 			}
 		}
 
-		Files.write(connectionEventsFile, kept, StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+		Files.write(connectionEventsFile, kept, StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING,
+				StandardOpenOption.WRITE);
 	}
 
 	private static String sanitize(final String value) {
@@ -590,137 +493,52 @@ public final class IpLoggerRepository {
 	private record SessionStart(long sessionId, Instant connectedAt) {
 	}
 
-	public record PlayerInfoView(
-		UUID uuid,
-		String username,
-		Instant firstSeen,
-		Instant lastSeen,
-		String lastIp,
-		List<IpLinkView> ipLinks
-	) {
+	public record PlayerInfoView(UUID uuid, String username, Instant firstSeen, Instant lastSeen, String lastIp,
+			List<IpLinkView> ipLinks) {
 	}
 
-	public record IpLinkView(
-		String ip,
-		Instant firstSeen,
-		Instant lastSeen,
-		long timesSeen,
-		String countryCode,
-		String country,
-		String region,
-		String city,
-		String timezone,
-		String asnNumber,
-		String asnOrganization,
-		String latitude,
-		String longitude,
-		String geoStatus,
-		String geoMessage
-	) {
+	public record IpLinkView(String ip, Instant firstSeen, Instant lastSeen, long timesSeen, String countryCode,
+			String country, String region, String city, String timezone, String asnNumber, String asnOrganization,
+			String latitude, String longitude, String geoStatus, String geoMessage) {
 	}
 
-	public record IpCorrelationView(
-		String ip,
-		UUID uuid,
-		String username,
-		Instant firstSeen,
-		Instant lastSeen,
-		long timesSeen,
-		String countryCode,
-		String country,
-		String region,
-		String city,
-		String timezone,
-		String asnNumber,
-		String asnOrganization,
-		String latitude,
-		String longitude,
-		String geoStatus,
-		String geoMessage
-	) {
+	public record IpCorrelationView(String ip, UUID uuid, String username, Instant firstSeen, Instant lastSeen,
+			long timesSeen, String countryCode, String country, String region, String city, String timezone,
+			String asnNumber, String asnOrganization, String latitude, String longitude, String geoStatus,
+			String geoMessage) {
 	}
 
-	private record PlayerRecord(
-		UUID uuid,
-		String username,
-		Instant firstSeen,
-		Instant lastSeen,
-		String lastIp,
-		String knownIps
-	) {
+	private record PlayerRecord(UUID uuid, String username, Instant firstSeen, Instant lastSeen, String lastIp,
+			String knownIps) {
 		private PlayerRecord withUpdate(final String newUsername, final Instant newLastSeen, final String newLastIp) {
-			return new PlayerRecord(
-				uuid,
-				newUsername,
-				firstSeen,
-				newLastSeen,
-				newLastIp,
-				mergeKnownIps(knownIps, newLastIp)
-			);
+			return new PlayerRecord(uuid, newUsername, firstSeen, newLastSeen, newLastIp,
+					mergeKnownIps(knownIps, newLastIp));
 		}
 	}
 
-	private record IpLinkRecord(
-		UUID uuid,
-		String ip,
-		Instant firstSeen,
-		Instant lastSeen,
-		long timesSeen,
-		String countryCode,
-		String country,
-		String region,
-		String city,
-		String timezone,
-		String isp,
-		String asnNumber,
-		String asnOrganization,
-		String latitude,
-		String longitude,
-		String geoStatus,
-		String geoMessage
-	) {
-		private static IpLinkRecord firstSeen(final UUID uuid, final String ip, final Instant now, final GeoIpInfo geoIpInfo) {
-			return new IpLinkRecord(
-				uuid,
-				ip,
-				now,
-				now,
-				1,
-				safe(geoIpInfo.countryCode()),
-				safe(geoIpInfo.country()),
-				safe(geoIpInfo.region()),
-				safe(geoIpInfo.city()),
-				safe(geoIpInfo.timezone()),
-				safe(geoIpInfo.isp()),
-				safe(geoIpInfo.asnNumber()),
-				safe(geoIpInfo.asnOrganization()),
-				safe(geoIpInfo.latitude()),
-				safe(geoIpInfo.longitude()),
-				safe(geoIpInfo.status()),
-				safe(geoIpInfo.message())
-			);
+	private record IpLinkRecord(UUID uuid, String ip, Instant firstSeen, Instant lastSeen, long timesSeen,
+			String countryCode, String country, String region, String city, String timezone, String isp,
+			String asnNumber, String asnOrganization, String latitude, String longitude, String geoStatus,
+			String geoMessage) {
+		private static IpLinkRecord firstSeen(final UUID uuid, final String ip, final Instant now,
+				final GeoIpInfo geoIpInfo) {
+			return new IpLinkRecord(uuid, ip, now, now, 1, safe(geoIpInfo.countryCode()), safe(geoIpInfo.country()),
+					safe(geoIpInfo.region()), safe(geoIpInfo.city()), safe(geoIpInfo.timezone()), safe(geoIpInfo.isp()),
+					safe(geoIpInfo.asnNumber()), safe(geoIpInfo.asnOrganization()), safe(geoIpInfo.latitude()),
+					safe(geoIpInfo.longitude()), safe(geoIpInfo.status()), safe(geoIpInfo.message()));
 		}
 
 		private IpLinkRecord bump(final Instant now, final GeoIpInfo geoIpInfo) {
-			return new IpLinkRecord(
-				uuid,
-				ip,
-				firstSeen,
-				now,
-				timesSeen + 1,
-				nonBlankOrDefault(geoIpInfo.countryCode(), countryCode),
-				nonBlankOrDefault(geoIpInfo.country(), country),
-				nonBlankOrDefault(geoIpInfo.region(), region),
-				nonBlankOrDefault(geoIpInfo.city(), city),
-				nonBlankOrDefault(geoIpInfo.timezone(), timezone),
-				nonBlankOrDefault(geoIpInfo.isp(), isp),
-				nonBlankOrDefault(geoIpInfo.asnNumber(), asnNumber),
-				nonBlankOrDefault(geoIpInfo.asnOrganization(), asnOrganization),
-				nonBlankOrDefault(geoIpInfo.latitude(), latitude),
-				nonBlankOrDefault(geoIpInfo.longitude(), longitude),
-				nonBlankOrDefault(geoIpInfo.status(), geoStatus),
-				nonBlankOrDefault(geoIpInfo.message(), geoMessage)
-			);
+			return new IpLinkRecord(uuid, ip, firstSeen, now, timesSeen + 1,
+					nonBlankOrDefault(geoIpInfo.countryCode(), countryCode),
+					nonBlankOrDefault(geoIpInfo.country(), country), nonBlankOrDefault(geoIpInfo.region(), region),
+					nonBlankOrDefault(geoIpInfo.city(), city), nonBlankOrDefault(geoIpInfo.timezone(), timezone),
+					nonBlankOrDefault(geoIpInfo.isp(), isp), nonBlankOrDefault(geoIpInfo.asnNumber(), asnNumber),
+					nonBlankOrDefault(geoIpInfo.asnOrganization(), asnOrganization),
+					nonBlankOrDefault(geoIpInfo.latitude(), latitude),
+					nonBlankOrDefault(geoIpInfo.longitude(), longitude),
+					nonBlankOrDefault(geoIpInfo.status(), geoStatus),
+					nonBlankOrDefault(geoIpInfo.message(), geoMessage));
 		}
 
 		private static String nonBlankOrDefault(final String value, final String fallback) {
