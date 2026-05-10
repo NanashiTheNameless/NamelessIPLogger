@@ -367,6 +367,12 @@ Aliases:
 - `/iplookup`
 - `/iplog`
 
+Additional subcommand aliases are accepted:
+
+- `user`, `name`
+- `update-db`, `refreshdb`
+- `checkupdate`, `updatecheck`, `update-check`, `updates`
+
 Examples:
 
 ```text
