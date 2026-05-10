@@ -31,6 +31,7 @@ public record PluginConfig(
 	int logMaxRetentionDays,
 	boolean logConsoleConnect,
 	boolean logConsoleDisconnect,
+	boolean commandsAllowAdminPermission,
 	boolean telemetryEnabled,
 	boolean updateCheckEnabled,
 	int updateCheckIntervalHours
@@ -40,7 +41,7 @@ public record PluginConfig(
 	private static final String DEFAULT_MAXMIND_URL_TEMPLATE = "https://download.maxmind.com/geoip/databases/{edition_id}/download?suffix=tar.gz";
 	private static final String DEFAULT_MAXMIND_EDITION = "GeoLite2-City";
 	private static final int DEFAULT_REFRESH_DAYS = 7;
-	private static final int CURRENT_CONFIG_VERSION = 1;
+	private static final int CURRENT_CONFIG_VERSION = 2;
 	private static final String CONFIG_VERSION_KEY = "config.version";
 
 	public static PluginConfig load(final Path dataDirectory, final ComponentLogger logger) throws IOException {
@@ -75,6 +76,7 @@ public record PluginConfig(
 		final int logMaxRetentionDays = parseMaxRetentionDays(get(properties, "log.max-retention-days", "0"));
 		final boolean logConsoleConnect = parseBoolean(get(properties, "log.console-connect", "true"), true);
 		final boolean logConsoleDisconnect = parseBoolean(get(properties, "log.console-disconnect", "true"), true);
+		final boolean commandsAllowAdminPermission = parseBoolean(get(properties, "commands.allow-admin-permission", "false"), false);
 		final boolean telemetryEnabled = parseBoolean(get(properties, "telemetry.enabled", "true"), true);
 		final boolean updateCheckEnabled = parseBoolean(get(properties, "updates.check-enabled", "true"), true);
 		final int updateCheckIntervalHours = parseUpdateCheckIntervalHours(get(properties, "updates.check-interval-hours", "6"));
@@ -98,6 +100,7 @@ public record PluginConfig(
 			logMaxRetentionDays,
 			logConsoleConnect,
 			logConsoleDisconnect,
+			commandsAllowAdminPermission,
 			telemetryEnabled,
 			updateCheckEnabled,
 			updateCheckIntervalHours
@@ -216,6 +219,7 @@ public record PluginConfig(
 				"log.write-connection-events",
 				"log.console-connect",
 				"log.console-disconnect",
+				"commands.allow-admin-permission",
 				"telemetry.enabled",
 				"updates.check-enabled" -> isBooleanValue(value);
 			default -> true;
@@ -318,6 +322,7 @@ public record PluginConfig(
 		values.put("log.max-retention-days", "0");
 		values.put("log.console-connect", "true");
 		values.put("log.console-disconnect", "true");
+		values.put("commands.allow-admin-permission", "false");
 		values.put("telemetry.enabled", "true");
 		values.put("updates.check-enabled", "true");
 		values.put("updates.check-interval-hours", "6");
@@ -431,6 +436,14 @@ public record PluginConfig(
 			+ "log.console-connect: " + quoteConfigValue(values.get("log.console-connect")) + "\n"
 			+ "# Print disconnect logs to proxy console\n"
 			+ "log.console-disconnect: " + quoteConfigValue(values.get("log.console-disconnect")) + "\n"
+			+ "\n"
+			+ "# --------------------------------------------------------------------------\n"
+			+ "# Command access\n"
+			+ "# --------------------------------------------------------------------------\n"
+			+ "# By default, /viplookup commands are console-only.\n"
+			+ "# Set true to also allow players with velocityiplogger.admin to run them.\n"
+			+ "# Allowed values: true | false.\n"
+			+ "commands.allow-admin-permission: " + quoteConfigValue(values.get("commands.allow-admin-permission")) + "\n"
 			+ "\n"
 			+ "# --------------------------------------------------------------------------\n"
 			+ "# Update checks\n"

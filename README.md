@@ -56,6 +56,7 @@ Operational notes:
 - Treat IP/identity data as sensitive and restrict file access.
 - Configure retention/deletion according to your local legal and policy requirements.
 - Use `/viplookup reload` after config changes and `/viplookup updatedb` for immediate database refresh.
+- Use `/viplookup checkupdates` to manually check GitHub Releases for a newer stable plugin version, even when scheduled update checks are disabled.
 
 ## GeoIP Database
 
@@ -102,7 +103,7 @@ Example:
 
 # Config schema version. Do not edit.
 # The plugin uses this to migrate older configs while preserving known settings.
-config.version: "1"
+config.version: "2"
 
 # GeoIP provider: dbip | maxmind-geolite2
 # Provider guidance:
@@ -164,6 +165,12 @@ log.console-connect: "true"
 # Print disconnect logs to proxy console
 log.console-disconnect: "true"
 
+# Command access
+# By default, /viplookup commands are console-only.
+# Set true to also allow players with velocityiplogger.admin to run them.
+# Allowed values: true | false.
+commands.allow-admin-permission: "false"
+
 # Update checks
 # Checks GitHub Releases for newer stable VelocityIPLogger versions and logs a notice.
 # Prereleases and the nightly tag are ignored.
@@ -213,6 +220,7 @@ Logging option notes:
 - `log.max-retention-days`: prune rows older than this many days using event/last_seen timestamps (`0` disables pruning).
 - `log.console-connect`: write connect events to proxy console log.
 - `log.console-disconnect`: write disconnect events to proxy console log.
+- `commands.allow-admin-permission`: allow players with `velocityiplogger.admin` to use `/viplookup` commands (`false` by default; console-only when disabled).
 - `telemetry.enabled`: send anonymous [NamelessTelemetry](https://github.com/NanashiTheNameless/NamelessTelemetry) census pings (`true` by default, set to `false` to disable).
 - `updates.check-enabled`: check GitHub Releases for newer stable plugin versions (`true` by default; prereleases and `nightly` are ignored; this does not download or install updates).
 - `updates.check-interval-hours`: interval between update checks in hours (`6` by default, minimum effective value is `1`).
@@ -324,13 +332,14 @@ Output jar:
 
 ## Console Commands
 
-These commands are console-only and cannot be executed by players.
+These commands are console-only by default. Set `commands.allow-admin-permission: "true"` to also allow players with `velocityiplogger.admin` to use them.
 
 - `/viplookup uuid <uuid>`
 - `/viplookup username <username>`
 - `/viplookup ip <ip>`
 - `/viplookup reload`
 - `/viplookup updatedb`
+- `/viplookup checkupdates`
 
 Aliases:
 
@@ -346,6 +355,7 @@ Examples:
 /viplookup ip 203.0.113.10
 /viplookup reload
 /viplookup updatedb
+/viplookup checkupdates
 ```
 
 ## Notes

@@ -210,6 +210,23 @@ public final class VelocityPlugin {
 		}
 	}
 
+	public UpdateCheckResult checkForUpdatesNow() {
+		final UpdateCheckerService checker = updateCheckerService;
+		if (checker == null) {
+			return new UpdateCheckResult(false, false, "Update checker is not initialized yet.");
+		}
+
+		final UpdateCheckerService.UpdateCheckResult result = checker.checkNow();
+		return new UpdateCheckResult(result.success(), result.updateAvailable(), result.message());
+	}
+
+	public boolean commandsAllowAdminPermission() {
+		return pluginConfig != null && pluginConfig.commandsAllowAdminPermission();
+	}
+
 	public record ReloadResult(boolean success, String message) {
+	}
+
+	public record UpdateCheckResult(boolean success, boolean updateAvailable, String message) {
 	}
 }

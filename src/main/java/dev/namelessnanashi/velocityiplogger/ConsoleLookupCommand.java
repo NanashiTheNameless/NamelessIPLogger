@@ -10,6 +10,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public final class ConsoleLookupCommand implements SimpleCommand {
+	private static final String ADMIN_PERMISSION = "velocityiplogger.admin";
+
 	private final IpLoggerRepository repository;
 	private final VelocityPlugin plugin;
 
@@ -20,8 +22,8 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 
 	@Override
 	public void execute(final Invocation invocation) {
-		if (!(invocation.source() instanceof ConsoleCommandSource)) {
-			invocation.source().sendMessage(Component.text("This command is console-only."));
+		if (!hasCommandAccess(invocation)) {
+			sendAccessDenied(invocation);
 			return;
 		}
 
@@ -56,17 +58,36 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 			}
 			case "reload" -> handleReload(invocation, args.length);
 			case "updatedb", "update-db", "refreshdb" -> handleUpdateDb(invocation, args.length);
+			case "checkupdates", "checkupdate", "updatecheck", "update-check", "updates" -> handleCheckUpdates(invocation, args.length);
 			default -> sendUsage(invocation);
 		}
 	}
 
 	@Override
 	public List<String> suggest(final Invocation invocation) {
+		if (!hasCommandAccess(invocation)) {
+			return List.of();
+		}
+
 		final String[] args = invocation.arguments();
 		if (args.length <= 1) {
-			return Arrays.asList("uuid", "username", "ip", "reload", "updatedb");
+			return Arrays.asList("uuid", "username", "ip", "reload", "updatedb", "checkupdates");
 		}
 		return List.of();
+	}
+
+	private boolean hasCommandAccess(final Invocation invocation) {
+		return invocation.source() instanceof ConsoleCommandSource
+			|| (plugin.commandsAllowAdminPermission() && invocation.source().hasPermission(ADMIN_PERMISSION));
+	}
+
+	private void sendAccessDenied(final Invocation invocation) {
+		if (plugin.commandsAllowAdminPermission()) {
+			invocation.source().sendMessage(Component.text("This command requires " + ADMIN_PERMISSION + "."));
+			return;
+		}
+
+		invocation.source().sendMessage(Component.text("This command is console-only."));
 	}
 
 	private void handleReload(final Invocation invocation, final int argLength) {
@@ -81,6 +102,17 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 		} else {
 			invocation.source().sendMessage(Component.text("[VelocityIPLogger] Reload failed: " + result.message()));
 		}
+	}
+
+	private void handleCheckUpdates(final Invocation invocation, final int argLength) {
+		if (argLength != 1) {
+			invocation.source().sendMessage(Component.text("Usage: /viplookup checkupdates"));
+			return;
+		}
+
+		invocation.source().sendMessage(Component.text("[VelocityIPLogger] Checking for updates now..."));
+		final VelocityPlugin.UpdateCheckResult result = plugin.checkForUpdatesNow();
+		invocation.source().sendMessage(Component.text("[VelocityIPLogger] " + result.message()));
 	}
 
 	private void handleUpdateDb(final Invocation invocation, final int argLength) {
@@ -209,5 +241,6 @@ public final class ConsoleLookupCommand implements SimpleCommand {
 		invocation.source().sendMessage(Component.text("Usage: /viplookup <uuid|username|ip> <value>"));
 		invocation.source().sendMessage(Component.text("Usage: /viplookup reload"));
 		invocation.source().sendMessage(Component.text("Usage: /viplookup updatedb"));
+		invocation.source().sendMessage(Component.text("Usage: /viplookup checkupdates"));
 	}
 }

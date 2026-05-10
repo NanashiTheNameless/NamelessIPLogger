@@ -80,10 +80,22 @@ final class UpdateCheckerService {
 	}
 
 	private void checkSafely() {
+		final UpdateCheckResult result = performCheck(true);
+		if (!result.success()) {
+			logger.debug(result.message());
+		}
+	}
+
+	UpdateCheckResult checkNow() {
+		return performCheck(false);
+	}
+
+	private UpdateCheckResult performCheck(final boolean notifyAdmins) {
 		try {
 			if (!isEndpointHostAllowed()) {
-				logger.warn("Update check skipped because endpoint resolved to a private, link-local, loopback, or otherwise unsafe address: {}", RELEASES_ENDPOINT);
-				return;
+				final String message = "Update check skipped because endpoint resolved to a private, link-local, loopback, or otherwise unsafe address: " + RELEASES_ENDPOINT;
+				logger.warn(message);
+				return new UpdateCheckResult(false, false, message);
 			}
 
 			final HttpRequest request = HttpRequest.newBuilder(RELEASES_ENDPOINT)
@@ -94,14 +106,13 @@ final class UpdateCheckerService {
 				.build();
 			final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 			if (response.statusCode() < 200 || response.statusCode() >= 300) {
-				logger.debug("Update check failed with HTTP status {}", response.statusCode());
-				return;
+				return new UpdateCheckResult(false, false, "Update check failed with HTTP status " + response.statusCode() + ".");
 			}
 
 			final Release latestRelease = latestRelease(response.body());
 			if (latestRelease == null) {
-				logger.debug("Update check found no applicable GitHub releases.");
-				return;
+				latestAvailableRelease = null;
+				return new UpdateCheckResult(true, false, "No applicable stable GitHub releases were found.");
 			}
 
 			if (compareVersions(latestRelease.version(), Constants.VERSION) > 0) {
@@ -112,15 +123,23 @@ final class UpdateCheckerService {
 					latestRelease.tagName(),
 					latestRelease.url()
 				);
-				notifyOnlineAdmins(latestRelease);
-			} else {
-				latestAvailableRelease = null;
-				logger.debug("VelocityIPLogger is up to date. Current version: {}", Constants.VERSION);
+				if (notifyAdmins) {
+					notifyOnlineAdmins(latestRelease);
+				}
+				return new UpdateCheckResult(
+					true,
+					true,
+					"Update available: current=" + Constants.VERSION + " latest=" + latestRelease.tagName() + " " + latestRelease.url()
+				);
 			}
+
+			latestAvailableRelease = null;
+			return new UpdateCheckResult(true, false, "VelocityIPLogger is up to date. Current version: " + Constants.VERSION + ".");
 		} catch (final InterruptedException exception) {
 			Thread.currentThread().interrupt();
+			return new UpdateCheckResult(false, false, "Update check interrupted.");
 		} catch (final Exception exception) {
-			logger.debug("Update check failed: {}", exception.getMessage());
+			return new UpdateCheckResult(false, false, "Update check failed: " + (exception.getMessage() == null ? "unknown error" : exception.getMessage()));
 		}
 	}
 
@@ -302,5 +321,8 @@ final class UpdateCheckerService {
 	}
 
 	private record Release(String tagName, String version, String url) {
+	}
+
+	record UpdateCheckResult(boolean success, boolean updateAvailable, String message) {
 	}
 }
