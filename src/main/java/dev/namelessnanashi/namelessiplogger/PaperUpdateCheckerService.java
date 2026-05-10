@@ -1,4 +1,10 @@
-package dev.namelessnanashi.velocityiplogger;
+package dev.namelessnanashi.namelessiplogger;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -16,20 +22,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
-
-final class UpdateCheckerService {
-	private static final URI RELEASES_ENDPOINT = URI.create("https://api.github.com/repos/NanashiTheNameless/VelocityIPLogger/releases");
+final class PaperUpdateCheckerService {
+	private static final URI RELEASES_ENDPOINT = URI.create("https://api.github.com/repos/NanashiTheNameless/NamelessIPLogger/releases");
 	private static final String IGNORED_TAG = "nightly";
 	private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(4);
 
 	private final ComponentLogger logger;
-	private final ProxyServer proxyServer;
 	private final PluginConfig config;
 	private final PluginStrings strings;
 	private final HttpClient httpClient;
@@ -37,14 +35,12 @@ final class UpdateCheckerService {
 	private volatile Release latestAvailableRelease;
 	private ScheduledExecutorService scheduler;
 
-	UpdateCheckerService(
+	PaperUpdateCheckerService(
 		final ComponentLogger logger,
-		final ProxyServer proxyServer,
 		final PluginConfig config,
 		final PluginStrings strings
 	) {
 		this.logger = logger;
-		this.proxyServer = proxyServer;
 		this.config = config;
 		this.strings = strings;
 		this.httpClient = HttpClient.newBuilder()
@@ -64,7 +60,7 @@ final class UpdateCheckerService {
 		}
 
 		scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-			final Thread thread = new Thread(runnable, "VelocityIPLogger-UpdateChecker");
+			final Thread thread = new Thread(runnable, "NamelessIPLogger-PaperUpdateChecker");
 			thread.setDaemon(true);
 			return thread;
 		});
@@ -106,7 +102,7 @@ final class UpdateCheckerService {
 			final HttpRequest request = HttpRequest.newBuilder(RELEASES_ENDPOINT)
 				.timeout(REQUEST_TIMEOUT)
 				.header("Accept", "application/vnd.github+json")
-				.header("User-Agent", "VelocityIPLogger/" + Constants.VERSION + " update-checker")
+				.header("User-Agent", "NamelessIPLogger/" + Constants.VERSION + " update-checker")
 				.GET()
 				.build();
 			final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -123,7 +119,7 @@ final class UpdateCheckerService {
 			if (compareVersions(latestRelease.version(), Constants.VERSION) > 0) {
 				latestAvailableRelease = latestRelease;
 				logger.info(
-					"VelocityIPLogger update available: current={} latest={} ({})",
+					"NamelessIPLogger update available: current={} latest={} ({})",
 					Constants.VERSION,
 					latestRelease.tagName(),
 					latestRelease.url()
@@ -161,8 +157,8 @@ final class UpdateCheckerService {
 	}
 
 	private void notifyOnlineAdmins(final Release update) {
-		final Component message = updateMessage(update);
-		for (final Player player : proxyServer.getAllPlayers()) {
+		final String message = updateMessage(update);
+		for (final Player player : Bukkit.getOnlinePlayers()) {
 			if (shouldNotify(player)) {
 				player.sendMessage(message);
 			}
@@ -173,13 +169,13 @@ final class UpdateCheckerService {
 		return player.hasPermission(PluginPermissions.UPDATE_NOTIFY) || player.hasPermission(PluginPermissions.ADMIN);
 	}
 
-	private Component updateMessage(final Release update) {
-		return Component.text(strings.get("prefix") + " " + strings.format(
+	private String updateMessage(final Release update) {
+		return strings.get("prefix") + " " + strings.format(
 			"updates.available",
 			"current", Constants.VERSION,
 			"latest", update.tagName(),
 			"url", update.url()
-		));
+		);
 	}
 
 	private Release latestRelease(final String responseBody) throws IOException {
@@ -205,7 +201,7 @@ final class UpdateCheckerService {
 			final Release candidate = new Release(
 				tagName,
 				normalizeVersion(tagName),
-				release.path("html_url").asText("https://github.com/NanashiTheNameless/VelocityIPLogger/releases")
+				release.path("html_url").asText("https://github.com/NanashiTheNameless/NamelessIPLogger/releases")
 			);
 			if (latest == null || compareVersions(candidate.version(), latest.version()) > 0) {
 				latest = candidate;

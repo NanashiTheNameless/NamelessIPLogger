@@ -1,0 +1,82 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (JDK ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21']
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Azul Zulu JDK ${{ matrix.java }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: ${{ matrix.java }}
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build
+        run: ./gradlew clean build --no-daemon
+
+      - name: Upload built jars
+        if: matrix.java == '17'
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-jars
+          path: build/libs/*.jar
+          if-no-files-found: error
+
+  smoke-dual-platform-jar:
+    name: Smoke (Velocity+Paper Jar Metadata)
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download built jars
+        uses: actions/download-artifact@v5
+        with:
+          name: built-jars
+          path: build/libs
+
+      - name: Locate release jar
+        id: jar
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar_path=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' | sort | head -n 1)
+          if [ -z "$jar_path" ]; then
+            echo "No release jar found in build/libs" >&2
+            exit 1
+          fi
+          echo "jar_path=$jar_path" >> "$GITHUB_OUTPUT"
+
+      - name: Validate Velocity descriptor exists
+        run: jar tf "${{ steps.jar.outputs.jar_path }}" | grep -q '^velocity-plugin.json$'
+
+      - name: Validate Paper descriptor exists
+        run: jar tf "${{ steps.jar.outputs.jar_path }}" | grep -q '^plugin.yml$'
+
+      - name: Validate Velocity entrypoint class exists
+        run: jar tf "${{ steps.jar.outputs.jar_path }}" | grep -q '^dev/namelessnanashi/namelessiplogger/VelocityPlugin.class$'
+
+      - name: Validate Paper entrypoint class exists
+        run: jar tf "${{ steps.jar.outputs.jar_path }}" | grep -q '^dev/namelessnanashi/namelessiplogger/PaperPlugin.class$'

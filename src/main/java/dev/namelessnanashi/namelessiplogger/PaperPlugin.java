@@ -1,87 +1,92 @@
-package dev.namelessnanashi.velocityiplogger;
+package dev.namelessnanashi.namelessiplogger;
 
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.tree.CommandNode;
-import com.google.inject.Inject;
-import com.velocitypowered.api.command.CommandMeta;
-import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.event.Subscribe;
-import com.velocitypowered.api.event.connection.DisconnectEvent;
-import com.velocitypowered.api.event.connection.PostLoginEvent;
-import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
-import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
-import com.velocitypowered.api.plugin.annotation.DataDirectory;
-import com.velocitypowered.api.plugin.Plugin;
-import com.velocitypowered.api.proxy.ConsoleCommandSource;
-import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Plugin(
-	id = "velocityiplogger",
-	name = "VelocityIPLogger",
-	description = "Correlated IP, identity and connection logger with GeoIP lookups",
-	version = Constants.VERSION,
-	authors = { "NanashiTheNameless" }
-)
-public final class VelocityPlugin {
-	@Inject
+public final class PaperPlugin extends JavaPlugin implements Listener {
 	private ComponentLogger logger;
-
-	@Inject
-	@DataDirectory
-	private Path dataDirectory;
-
-	@Inject
-	private ProxyServer proxyServer;
-
 	private ExecutorService executor;
 	private IpLoggerRepository repository;
 	private volatile GeoIpService geoIpService;
 	private volatile TelemetryService telemetryService;
-	private volatile UpdateCheckerService updateCheckerService;
+	private volatile PaperUpdateCheckerService updateCheckerService;
 	private volatile PluginConfig pluginConfig;
 	private volatile PluginStrings pluginStrings = PluginStrings.defaults();
 	private final Object lifecycleLock = new Object();
-	
-	@Subscribe
-	void onProxyInitialization(final ProxyInitializeEvent event) {
+
+	@Override
+	public void onEnable() {
+		logger = ComponentLogger.logger("NamelessIPLogger");
 		executor = Executors.newFixedThreadPool(2);
 
 		try {
-			pluginConfig = PluginConfig.load(dataDirectory, logger);
-			pluginStrings = PluginStrings.load(dataDirectory, logger);
-			repository = new IpLoggerRepository(dataDirectory, logger, pluginConfig);
-			geoIpService = new GeoIpService(logger, dataDirectory, pluginConfig);
+			pluginConfig = PluginConfig.load(getDataFolder().toPath(), logger);
+			pluginStrings = PluginStrings.load(getDataFolder().toPath(), logger);
+			repository = new IpLoggerRepository(getDataFolder().toPath(), logger, pluginConfig);
+			geoIpService = new GeoIpService(logger, getDataFolder().toPath(), pluginConfig);
 			repository.initialize();
 			geoIpService.initialize();
-			telemetryService = new TelemetryService(logger, dataDirectory, pluginConfig);
+			telemetryService = new TelemetryService(logger, getDataFolder().toPath(), pluginConfig);
 			telemetryService.start();
-			updateCheckerService = new UpdateCheckerService(logger, proxyServer, pluginConfig, pluginStrings);
+			updateCheckerService = new PaperUpdateCheckerService(logger, pluginConfig, pluginStrings);
 			updateCheckerService.start();
-			registerCommands();
-			logger.info("VelocityIPLogger initialized. Data directory: {}", dataDirectory.toAbsolutePath().toString());
+
+			final PaperLookupCommand command = new PaperLookupCommand(repository, this);
+			if (getCommand("niplookup") != null) {
+				getCommand("niplookup").setExecutor(command);
+				getCommand("niplookup").setTabCompleter(command);
+			} else {
+				logger.warn("Command niplookup is missing from plugin.yml");
+			}
+
+			Bukkit.getPluginManager().registerEvents(this, this);
+			logger.info("NamelessIPLogger initialized on Paper. Data directory: {}", getDataFolder().toPath().toAbsolutePath().toString());
 		} catch (final Exception exception) {
-			logger.error("Failed to initialize VelocityIPLogger", exception);
+			logger.error("Failed to initialize NamelessIPLogger on Paper", exception);
+			Bukkit.getPluginManager().disablePlugin(this);
 		}
 	}
 
-	@Subscribe
-	void onPostLogin(final PostLoginEvent event) {
+	@Override
+	public void onDisable() {
+		if (executor != null) {
+			executor.shutdown();
+		}
+		if (geoIpService != null) {
+			geoIpService.shutdown();
+		}
+		if (telemetryService != null) {
+			telemetryService.shutdown();
+		}
+		if (updateCheckerService != null) {
+			updateCheckerService.shutdown();
+		}
+	}
+
+	@EventHandler
+	public void onPlayerJoin(final PlayerJoinEvent event) {
 		final Player player = event.getPlayer();
 		if (updateCheckerService != null) {
 			updateCheckerService.notifyPlayerIfOutdated(player);
 		}
+
 		final UUID uuid = player.getUniqueId();
-		final String rawUsername = player.getUsername();
+		final String rawUsername = player.getName();
 		final String rawIp = extractIp(player);
 		final String username = pluginConfig.logIncludeUsername() ? rawUsername : "[redacted]";
 		final String ip = pluginConfig.logIncludeIp() ? rawIp : "[redacted]";
@@ -102,11 +107,11 @@ public final class VelocityPlugin {
 		});
 	}
 
-	@Subscribe
-	void onDisconnect(final DisconnectEvent event) {
+	@EventHandler
+	public void onPlayerQuit(final PlayerQuitEvent event) {
 		final Player player = event.getPlayer();
 		final UUID uuid = player.getUniqueId();
-		final String rawUsername = player.getUsername();
+		final String rawUsername = player.getName();
 		final String username = pluginConfig.logIncludeUsername() ? rawUsername : "[redacted]";
 		final String ip = pluginConfig.logIncludeIp() ? extractIp(player) : "[redacted]";
 		final Instant now = Instant.now();
@@ -123,24 +128,9 @@ public final class VelocityPlugin {
 		});
 	}
 
-	@Subscribe
-	void onProxyShutdown(final ProxyShutdownEvent event) {
-		if (executor != null) {
-			executor.shutdown();
-		}
-		if (geoIpService != null) {
-			geoIpService.shutdown();
-		}
-		if (telemetryService != null) {
-			telemetryService.shutdown();
-		}
-		if (updateCheckerService != null) {
-			updateCheckerService.shutdown();
-		}
-	}
-
 	private String extractIp(final Player player) {
-		if (!(player.getRemoteAddress() instanceof InetSocketAddress socketAddress)) {
+		final InetSocketAddress socketAddress = player.getAddress();
+		if (socketAddress == null) {
 			return "unknown";
 		}
 
@@ -152,37 +142,17 @@ public final class VelocityPlugin {
 		return address.getHostAddress();
 	}
 
-	private void registerCommands() {
-		final CommandMeta lookupMeta = proxyServer.getCommandManager()
-			.metaBuilder("viplookup")
-			.aliases("viplog", "iplookup", "iplog")
-			.hint(commandHint("viplookup"))
-			.hint(commandHint("viplog"))
-			.hint(commandHint("iplookup"))
-			.hint(commandHint("iplog"))
-			.plugin(this)
-			.build();
-
-		proxyServer.getCommandManager().register(lookupMeta, new ConsoleLookupCommand(repository, this));
-	}
-
-	private CommandNode<CommandSource> commandHint(final String commandName) {
-		return LiteralArgumentBuilder.<CommandSource>literal(commandName)
-			.requires(this::canUseLookupCommand)
-			.build();
-	}
-
-	private boolean canUseLookupCommand(final CommandSource source) {
-		return source instanceof ConsoleCommandSource
+	boolean canUseLookupCommand(final CommandSender source) {
+		return source instanceof ConsoleCommandSender
 			|| (commandsAllowAdminPermission() && source.hasPermission(PluginPermissions.ADMIN));
 	}
 
 	public ReloadResult reloadConfiguration() {
 		synchronized (lifecycleLock) {
 			try {
-				final PluginConfig newConfig = PluginConfig.load(dataDirectory, logger);
-				final PluginStrings newStrings = PluginStrings.load(dataDirectory, logger);
-				final GeoIpService newGeoIpService = new GeoIpService(logger, dataDirectory, newConfig);
+				final PluginConfig newConfig = PluginConfig.load(getDataFolder().toPath(), logger);
+				final PluginStrings newStrings = PluginStrings.load(getDataFolder().toPath(), logger);
+				final GeoIpService newGeoIpService = new GeoIpService(logger, getDataFolder().toPath(), newConfig);
 				newGeoIpService.initialize();
 				if (!newGeoIpService.isReady()) {
 					throw new IllegalStateException(newGeoIpService.lastInitializationError());
@@ -198,12 +168,12 @@ public final class VelocityPlugin {
 				if (telemetryService != null) {
 					telemetryService.shutdown();
 				}
-				telemetryService = new TelemetryService(logger, dataDirectory, newConfig);
+				telemetryService = new TelemetryService(logger, getDataFolder().toPath(), newConfig);
 				telemetryService.start();
 				if (updateCheckerService != null) {
 					updateCheckerService.shutdown();
 				}
-				updateCheckerService = new UpdateCheckerService(logger, proxyServer, newConfig, newStrings);
+				updateCheckerService = new PaperUpdateCheckerService(logger, newConfig, newStrings);
 				updateCheckerService.start();
 				if (previousService != null) {
 					previousService.shutdown();
@@ -234,12 +204,12 @@ public final class VelocityPlugin {
 	}
 
 	public UpdateCheckResult checkForUpdatesNow() {
-		final UpdateCheckerService checker = updateCheckerService;
+		final PaperUpdateCheckerService checker = updateCheckerService;
 		if (checker == null) {
 			return new UpdateCheckResult(false, false, strings().get("updates.checker-unavailable"));
 		}
 
-		final UpdateCheckerService.UpdateCheckResult result = checker.checkNow();
+		final PaperUpdateCheckerService.UpdateCheckResult result = checker.checkNow();
 		return new UpdateCheckResult(result.success(), result.updateAvailable(), result.message());
 	}
 

@@ -1,4 +1,4 @@
-package dev.namelessnanashi.velocityiplogger;
+package dev.namelessnanashi.namelessiplogger;
 
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.ConsoleCommandSource;

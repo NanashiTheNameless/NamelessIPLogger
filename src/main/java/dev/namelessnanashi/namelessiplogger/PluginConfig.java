@@ -1,4 +1,4 @@
-package dev.namelessnanashi.velocityiplogger;
+package dev.namelessnanashi.namelessiplogger;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -350,14 +350,14 @@ public record PluginConfig(
 		}
 
 		return "# ============================================================================\n"
-			+ "# VelocityIPLogger - config.yml\n"
+			+ "# NamelessIPLogger - config.yml\n"
 			+ "# ============================================================================\n"
 			+ "# All keys are flat key:value pairs (no nested YAML objects required).\n"
 			+ "#\n"
 			+ "# Tips:\n"
 			+ "# - Keep this file UTF-8 encoded.\n"
-			+ "# - Apply edits with /viplookup reload (proxy restart is not required).\n"
-			+ "# - Run /viplookup updatedb to force immediate GeoIP database redownload.\n"
+			+ "# - Apply edits with /niplookup reload (proxy restart is not required).\n"
+			+ "# - Run /niplookup updatedb to force immediate GeoIP database redownload.\n"
 			+ "# - Quote values to avoid YAML parser edge cases.\n"
 			+ "#\n"
 			+ "# Config schema version. Do not edit.\n"
@@ -440,15 +440,15 @@ public record PluginConfig(
 			+ "# --------------------------------------------------------------------------\n"
 			+ "# Command access\n"
 			+ "# --------------------------------------------------------------------------\n"
-			+ "# By default, /viplookup commands are console-only.\n"
-			+ "# Set true to also allow players with velocityiplogger.admin to run them.\n"
+			+ "# By default, /niplookup commands are console-only.\n"
+			+ "# Set true to also allow players with namelessiplogger.admin to run them.\n"
 			+ "# Allowed values: true | false.\n"
 			+ "commands.allow-admin-permission: " + quoteConfigValue(values.get("commands.allow-admin-permission")) + "\n"
 			+ "\n"
 			+ "# --------------------------------------------------------------------------\n"
 			+ "# Update checks\n"
 			+ "# --------------------------------------------------------------------------\n"
-			+ "# Checks GitHub Releases for newer stable VelocityIPLogger versions and logs a notice.\n"
+			+ "# Checks GitHub Releases for newer stable NamelessIPLogger versions and logs a notice.\n"
 			+ "# Prereleases and the nightly tag are ignored.\n"
 			+ "# This does not download or install updates.\n"
 			+ "# Allowed values: true | false.\n"

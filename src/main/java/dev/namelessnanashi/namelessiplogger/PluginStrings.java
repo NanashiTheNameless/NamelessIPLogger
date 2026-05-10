@@ -1,4 +1,4 @@
-package dev.namelessnanashi.velocityiplogger;
+package dev.namelessnanashi.namelessiplogger;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -100,13 +100,13 @@ public final class PluginStrings {
 
 	private static Map<String, String> defaultValues() {
 		final Map<String, String> values = new LinkedHashMap<>();
-		values.put("prefix", "[VelocityIPLogger]");
+		values.put("prefix", "[NamelessIPLogger]");
 		values.put("access.console-only", "This command is console-only.");
 		values.put("access.permission-required", "This command requires {permission}.");
-		values.put("usage.lookup", "Usage: /viplookup <uuid|username|ip> <value>");
-		values.put("usage.reload", "Usage: /viplookup reload");
-		values.put("usage.updatedb", "Usage: /viplookup updatedb");
-		values.put("usage.checkupdates", "Usage: /viplookup checkupdates");
+		values.put("usage.lookup", "Usage: /niplookup <uuid|username|ip> <value>");
+		values.put("usage.reload", "Usage: /niplookup reload");
+		values.put("usage.updatedb", "Usage: /niplookup updatedb");
+		values.put("usage.checkupdates", "Usage: /niplookup checkupdates");
 		values.put("reload.success", "Configuration reloaded successfully.");
 		values.put("reload.failure", "Reload failed: {error}");
 		values.put("geoip.update.start", "Updating GeoIP databases now...");
@@ -119,7 +119,7 @@ public final class PluginStrings {
 		values.put("updates.http-failure", "Update check failed with HTTP status {status}.");
 		values.put("updates.no-release", "No applicable stable GitHub releases were found.");
 		values.put("updates.available", "Update available: current={current} latest={latest} {url}");
-		values.put("updates.current", "VelocityIPLogger is up to date. Current version: {current}.");
+		values.put("updates.current", "NamelessIPLogger is up to date. Current version: {current}.");
 		values.put("updates.interrupted", "Update check interrupted.");
 		values.put("updates.failure", "Update check failed: {error}");
 		values.put("lookup.invalid-uuid", "Invalid UUID: {uuid}");
@@ -142,7 +142,7 @@ public final class PluginStrings {
 	private static String defaultStringsFile(final Map<String, String> values) {
 		final StringBuilder builder = new StringBuilder()
 			.append("# ============================================================================\n")
-			.append("# VelocityIPLogger - strings.yml\n")
+			.append("# NamelessIPLogger - strings.yml\n")
 			.append("# ============================================================================\n")
 			.append("# Edit these messages to translate command and chat output.\n")
 			.append("# Keep placeholder names such as {uuid}, {error}, and {permission} intact.\n")

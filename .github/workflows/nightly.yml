@@ -38,11 +38,11 @@ jobs:
           echo "git_sha7=$git_sha7" >> "$GITHUB_OUTPUT"
           echo "project_version=$project_version" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Azul Zulu JDK 21
+      - name: Set up Azul Zulu JDK 17
         uses: actions/setup-java@v5
         with:
           distribution: zulu
-          java-version: '21'
+          java-version: '17'
           cache: gradle
 
       - name: Make Gradle wrapper executable
@@ -100,10 +100,10 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const releaseName = `Nightly (${{ steps.vars.outputs.date }})`;
-            const jarAssetName = `VelocityIPLogger-nightly-${{ steps.vars.outputs.project_version }}-${{ steps.vars.outputs.date }}-${{ steps.vars.outputs.git_sha7 }}.jar`;
+            const jarAssetName = `NamelessIPLogger-nightly-${{ steps.vars.outputs.project_version }}-${{ steps.vars.outputs.date }}-${{ steps.vars.outputs.git_sha7 }}.jar`;
             const jarUrl = `https://github.com/${owner}/${repo}/releases/download/${tag}/${jarAssetName}`;
             const releaseBody = [
-              'Latest rolling nightly build for VelocityIPLogger.',
+              'Latest rolling nightly build for NamelessIPLogger.',
               '',
               `Download the latest nightly JAR: [${jarAssetName}](${jarUrl})`,
               `Source commit: \`${{ steps.vars.outputs.git_sha7 }}\``,
@@ -156,7 +156,7 @@ jobs:
           upload_url: ${{ steps.release.outputs.upload_url }}
           release_id: ${{ steps.release.outputs.release_id }}
           asset_path: ${{ steps.locate_jar.outputs.jar_path }}
-          asset_name: VelocityIPLogger-nightly-${{ steps.vars.outputs.project_version }}-$$.jar
+          asset_name: NamelessIPLogger-nightly-${{ steps.vars.outputs.project_version }}-$$.jar
           asset_content_type: application/java-archive
           max_releases: 6
           ignore_hash: false

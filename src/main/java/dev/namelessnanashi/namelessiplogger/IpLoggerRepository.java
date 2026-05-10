@@ -1,4 +1,4 @@
-package dev.namelessnanashi.velocityiplogger;
+package dev.namelessnanashi.namelessiplogger;
 
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 

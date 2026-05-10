@@ -1,4 +1,4 @@
-package dev.namelessnanashi.velocityiplogger;
+package dev.namelessnanashi.namelessiplogger;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -29,7 +29,7 @@ import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 
 final class TelemetryService {
 	private static final URI ENDPOINT = URI.create("https://telemetry.namelessnanashi.dev/census");
-	private static final String PROJECT_NAME = "VelocityIPLogger";
+	private static final String PROJECT_NAME = "NamelessIPLogger";
 	private static final String INSTANCE_ID_FILE_NAME = "telemetry-instance-id.txt";
 	private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
 	private static final long PERIOD_HOURS = 2;
@@ -66,7 +66,7 @@ final class TelemetryService {
 		}
 
 		scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-			final Thread thread = new Thread(runnable, "VelocityIPLogger-Telemetry");
+			final Thread thread = new Thread(runnable, "NamelessIPLogger-Telemetry");
 			thread.setDaemon(true);
 			return thread;
 		});

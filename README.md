@@ -1,6 +1,6 @@
-# VelocityIPLogger
+# NamelessIPLogger
 
-VelocityIPLogger is a Velocity proxy plugin that tracks and correlates:
+NamelessIPLogger is a Velocity and Paper plugin for moderation and security auditing that tracks and correlates:
 
 - player UUIDs
 - usernames
@@ -8,7 +8,7 @@ VelocityIPLogger is a Velocity proxy plugin that tracks and correlates:
 - connection and disconnection events
 - GeoIP location data from a local database
 
-It is designed for moderation and security auditing workflows where you need historical identity/IP correlation.
+It is designed for operational moderation workflows where you need historical identity/IP correlation.
 
 ## Features
 
@@ -34,11 +34,11 @@ Data collected (configurable):
 
 Data storage location:
 
-- `plugins/velocityiplogger/players.tsv`
-- `plugins/velocityiplogger/ip_links.tsv`
-- `plugins/velocityiplogger/connection_events.tsv`
-- `plugins/velocityiplogger/strings.yml` (customizable command/chat messages)
-- `plugins/velocityiplogger/telemetry-instance-id.txt` (anonymous telemetry instance UUID, when telemetry is enabled)
+- `plugins/namelessiplogger/players.tsv`
+- `plugins/namelessiplogger/ip_links.tsv`
+- `plugins/namelessiplogger/connection_events.tsv`
+- `plugins/namelessiplogger/strings.yml` (customizable command/chat messages)
+- `plugins/namelessiplogger/telemetry-instance-id.txt` (anonymous telemetry instance UUID, when telemetry is enabled)
 
 Network access behavior:
 
@@ -56,16 +56,16 @@ Operational notes:
 
 - Treat IP/identity data as sensitive and restrict file access.
 - Configure retention/deletion according to your local legal and policy requirements.
-- Use `/viplookup reload` after config changes and `/viplookup updatedb` for immediate database refresh.
-- Use `/viplookup checkupdates` to manually check GitHub Releases for a newer stable plugin version, even when scheduled update checks are disabled.
+- Use `/niplookup reload` after config changes and `/niplookup updatedb` for immediate database refresh.
+- Use `/niplookup checkupdates` to manually check GitHub Releases for a newer stable plugin version, even when scheduled update checks are disabled.
 
 ## GeoIP Database
 
 On startup, the plugin ensures a local GeoIP database exists under:
 
-- `plugins/velocityiplogger/geoip/`
+- `plugins/namelessiplogger/geoip/`
 
-Provider behavior is controlled via `plugins/velocityiplogger/config.yml`:
+Provider behavior is controlled via `plugins/namelessiplogger/config.yml`:
 
 - `geoip.provider=dbip` uses DB-IP City + ASN Lite downloads.
 - `geoip.provider=maxmind-geolite2` uses MaxMind GeoLite2 City + ASN downloads.
@@ -86,21 +86,21 @@ After the database is present, lookups are done locally against the MMDB file.
 
 The plugin writes a default config at first startup:
 
-- `plugins/velocityiplogger/config.yml`
-- `plugins/velocityiplogger/strings.yml`
+- `plugins/namelessiplogger/config.yml`
+- `plugins/namelessiplogger/strings.yml`
 
 Example:
 
 ```yaml
 # ============================================================================
-# VelocityIPLogger - config.yml
+# NamelessIPLogger - config.yml
 # ============================================================================
 # All keys are flat key:value pairs (no nested YAML objects required).
 #
 # Tips:
 # - Keep this file UTF-8 encoded.
-# - Apply edits with /viplookup reload (proxy restart is not required).
-# - Run /viplookup updatedb to force immediate GeoIP database redownload.
+# - Apply edits with /niplookup reload (proxy restart is not required).
+# - Run /niplookup updatedb to force immediate GeoIP database redownload.
 # - Quote values to avoid YAML parser edge cases.
 
 # Config schema version. Do not edit.
@@ -168,13 +168,13 @@ log.console-connect: "true"
 log.console-disconnect: "true"
 
 # Command access
-# By default, /viplookup commands are console-only.
-# Set true to also allow players with velocityiplogger.admin to run them.
+# By default, /niplookup commands are console-only.
+# Set true to also allow players with namelessiplogger.admin to run them.
 # Allowed values: true | false.
 commands.allow-admin-permission: "false"
 
 # Update checks
-# Checks GitHub Releases for newer stable VelocityIPLogger versions and logs a notice.
+# Checks GitHub Releases for newer stable NamelessIPLogger versions and logs a notice.
 # Prereleases and the nightly tag are ignored.
 # This does not download or install updates.
 # Allowed values: true | false.
@@ -197,8 +197,8 @@ To use MaxMind GeoLite2 City:
 1. Set `geoip.provider: maxmind-geolite2`
 2. Set `geoip.maxmind.account-id: <your_account_id>`
 3. Set `geoip.maxmind.license-key: <your_key>`
-4. Run `/viplookup reload`
-5. Run `/viplookup updatedb` (optional, forces immediate DB redownload)
+4. Run `/niplookup reload`
+5. Run `/niplookup updatedb` (optional, forces immediate DB redownload)
 
 URL notes:
 
@@ -222,7 +222,7 @@ Logging option notes:
 - `log.max-retention-days`: prune rows older than this many days using event/last_seen timestamps (`0` disables pruning).
 - `log.console-connect`: write connect events to proxy console log.
 - `log.console-disconnect`: write disconnect events to proxy console log.
-- `commands.allow-admin-permission`: allow players with `velocityiplogger.admin` to use `/viplookup` commands (`false` by default; console-only when disabled).
+- `commands.allow-admin-permission`: allow players with `namelessiplogger.admin` to use `/niplookup` commands (`false` by default; console-only when disabled).
 - `telemetry.enabled`: send anonymous [NamelessTelemetry](https://github.com/NanashiTheNameless/NamelessTelemetry) census pings (`true` by default, set to `false` to disable).
 - `updates.check-enabled`: check GitHub Releases for newer stable plugin versions (`true` by default; prereleases and `nightly` are ignored; this does not download or install updates).
 - `updates.check-interval-hours`: interval between update checks in hours (`6` by default, minimum effective value is `1`).
@@ -230,13 +230,13 @@ Logging option notes:
 Update notifications:
 
 - When an update is found, the plugin logs it to console and sends an in-chat notice to online admins.
-- Velocity does not have Bukkit-style OPs, so chat notices are sent to players with `velocityiplogger.update.notify` or `velocityiplogger.admin`.
+- Velocity does not have Bukkit-style OPs, so chat notices are sent to players with `namelessiplogger.update.notify` or `namelessiplogger.admin`.
 - Admins who join after an update was found also receive the notice.
 
 Permissions:
 
-- `velocityiplogger.admin`: allows player use of `/viplookup` commands when `commands.allow-admin-permission` is enabled; also receives update notices.
-- `velocityiplogger.update.notify`: receives update notices without granting command access.
+- `namelessiplogger.admin`: allows player use of `/niplookup` commands when `commands.allow-admin-permission` is enabled; also receives update notices.
+- `namelessiplogger.update.notify`: receives update notices without granting command access.
 
 Config migration:
 
@@ -251,25 +251,25 @@ Telemetry shared data:
 
 - `id`: SHA-256 hash of `telemetry-instance-id.txt`; the raw local UUID is not sent.
 - `date`: current UTC date in `YYYY-MM-DD` format.
-- `projectname` / `project`: `VelocityIPLogger`.
+- `projectname` / `project`: `NamelessIPLogger`.
 - `count`: `1`.
-- Request headers include a plugin user agent and `X-Project-Name: VelocityIPLogger`.
+- Request headers include a plugin user agent and `X-Project-Name: NamelessIPLogger`.
 
 ## Translation
 
 Command output and update notices can be translated in:
 
-- `plugins/velocityiplogger/strings.yml`
+- `plugins/namelessiplogger/strings.yml`
 
-Run `/viplookup reload` after editing the file. Keep placeholder names such as `{uuid}`, `{error}`, `{permission}`, `{current}`, `{latest}`, and `{url}` intact.
+Run `/niplookup reload` after editing the file. Keep placeholder names such as `{uuid}`, `{error}`, `{permission}`, `{current}`, `{latest}`, and `{url}` intact.
 
 ## Stored Data
 
 The plugin stores data in:
 
-- `plugins/velocityiplogger/players.tsv`
-- `plugins/velocityiplogger/ip_links.tsv`
-- `plugins/velocityiplogger/connection_events.tsv`
+- `plugins/namelessiplogger/players.tsv`
+- `plugins/namelessiplogger/ip_links.tsv`
+- `plugins/namelessiplogger/connection_events.tsv`
 
 ### `players.tsv`
 
@@ -324,7 +324,7 @@ Append-only event log:
 
 Requirements:
 
-- Java 21+
+- Java 17+
 - Gradle (or use the included wrapper)
 
 Build command:
@@ -341,37 +341,50 @@ Output jar:
 ## Installation
 
 1. Download/Build the plugin jar.
-2. Place the jar in your Velocity `plugins/` folder.
-3. Start or restart the proxy.
-4. Verify startup logs mention VelocityIPLogger initialization.
+2. Place the jar in your server `plugins/` folder.
+3. Start or restart your platform.
+4. Verify startup logs mention NamelessIPLogger initialization.
+
+Platform paths:
+
+- Velocity: `plugins/`
+- Paper: `plugins/`
 
 ## Console Commands
 
-These commands are console-only by default. Set `commands.allow-admin-permission: "true"` to also allow players with `velocityiplogger.admin` to use them.
+These commands are console-only by default. Set `commands.allow-admin-permission: "true"` to also allow players with `namelessiplogger.admin` to use them.
 
-- `/viplookup uuid <uuid>`
-- `/viplookup username <username>`
-- `/viplookup ip <ip>`
-- `/viplookup reload`
-- `/viplookup updatedb`
-- `/viplookup checkupdates`
+- `/niplookup uuid <uuid>`
+- `/niplookup username <username>`
+- `/niplookup ip <ip>`
+- `/niplookup reload`
+- `/niplookup updatedb`
+- `/niplookup checkupdates`
 
 Aliases:
 
-- `/viplog`
+- `/niplog`
 - `/iplookup`
 - `/iplog`
 
 Examples:
 
 ```text
-/viplookup uuid 00000000-0000-0000-0000-000000000000
-/viplookup username SomePlayer
-/viplookup ip 203.0.113.10
-/viplookup reload
-/viplookup updatedb
-/viplookup checkupdates
+/niplookup uuid 00000000-0000-0000-0000-000000000000
+/niplookup username SomePlayer
+/niplookup ip 203.0.113.10
+/niplookup reload
+/niplookup updatedb
+/niplookup checkupdates
 ```
+
+## Nightly Auto-Builds
+
+Nightly development builds are published automatically from the latest `main` or `master` branch changes, and can also be triggered manually.
+
+- `https://github.com/NanashiTheNameless/VelocityIPLogger/releases/tag/nightly`
+
+Nightly builds are intended for testing and may change more frequently than stable versioned releases. Built-in update checks ignore prereleases and the `nightly` tag.
 
 ## Notes
 
@@ -380,8 +393,8 @@ Examples:
 
 ## Namespace
 
-- Java package: `dev.namelessnanashi.velocityiplogger`
-- Plugin ID: `velocityiplogger`
+- Java package: `dev.namelessnanashi.namelessiplogger`
+- Plugin ID: `namelessiplogger`
 
 ## License
 

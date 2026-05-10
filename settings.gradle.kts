@@ -1,4 +1,4 @@
-rootProject.name = "VelocityIPLogger"
+rootProject.name = "NamelessIPLogger"
 
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"

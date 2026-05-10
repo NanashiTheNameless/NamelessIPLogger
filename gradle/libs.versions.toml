@@ -2,10 +2,12 @@ metadata.format.version = "1.1"
 
 [versions]
 velocity = "3.4.0-SNAPSHOT"
+paper = "1.18.1-R0.1-SNAPSHOT"
 runtask = "3.0.0"
 
 [libraries]
 velocity = { group = "com.velocitypowered", name = "velocity-api", version.ref = "velocity" }
+paper-api = { group = "io.papermc.paper", name = "paper-api", version.ref = "paper" }
 geoip2 = { module = "com.maxmind.geoip2:geoip2", version = "4.2.1" }
 
 [plugins]

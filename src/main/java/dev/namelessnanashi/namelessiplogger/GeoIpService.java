@@ -1,4 +1,4 @@
-package dev.namelessnanashi.velocityiplogger;
+package dev.namelessnanashi.namelessiplogger;
 
 import com.maxmind.db.CHMCache;
 import com.maxmind.geoip2.DatabaseReader;
@@ -465,7 +465,7 @@ public final class GeoIpService {
 		connection.setInstanceFollowRedirects(true);
 		connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
 		connection.setReadTimeout(READ_TIMEOUT_MS);
-		connection.setRequestProperty("User-Agent", "VelocityIPLogger/" + Constants.VERSION);
+		connection.setRequestProperty("User-Agent", "NamelessIPLogger/" + Constants.VERSION);
 		connection.setRequestProperty("Accept", "*/*");
 		if (authorizationHeader != null && !authorizationHeader.isBlank()) {
 			connection.setRequestProperty("Authorization", authorizationHeader);
