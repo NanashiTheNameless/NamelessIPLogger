@@ -31,7 +31,9 @@ public record PluginConfig(
 	int logMaxRetentionDays,
 	boolean logConsoleConnect,
 	boolean logConsoleDisconnect,
-	boolean telemetryEnabled
+	boolean telemetryEnabled,
+	boolean updateCheckEnabled,
+	int updateCheckIntervalHours
 ) {
 	private static final String DEFAULT_DBIP_URL = "https://download.db-ip.com/free/dbip-city-lite-YYYY-MM.mmdb.gz";
 	private static final String DEFAULT_DBIP_ASN_URL = "https://download.db-ip.com/free/dbip-asn-lite-YYYY-MM.mmdb.gz";
@@ -74,6 +76,8 @@ public record PluginConfig(
 		final boolean logConsoleConnect = parseBoolean(get(properties, "log.console-connect", "true"), true);
 		final boolean logConsoleDisconnect = parseBoolean(get(properties, "log.console-disconnect", "true"), true);
 		final boolean telemetryEnabled = parseBoolean(get(properties, "telemetry.enabled", "true"), true);
+		final boolean updateCheckEnabled = parseBoolean(get(properties, "updates.check-enabled", "true"), true);
+		final int updateCheckIntervalHours = parseUpdateCheckIntervalHours(get(properties, "updates.check-interval-hours", "6"));
 
 		return new PluginConfig(
 			provider,
@@ -94,7 +98,9 @@ public record PluginConfig(
 			logMaxRetentionDays,
 			logConsoleConnect,
 			logConsoleDisconnect,
-			telemetryEnabled
+			telemetryEnabled,
+			updateCheckEnabled,
+			updateCheckIntervalHours
 		);
 	}
 
@@ -103,10 +109,10 @@ public record PluginConfig(
 			return defaultValue;
 		}
 		final String normalized = value.trim().toLowerCase(Locale.ROOT);
-		if ("true".equals(normalized) || "on".equals(normalized) || "1".equals(normalized)) {
+		if ("true".equals(normalized)) {
 			return true;
 		}
-		if ("false".equals(normalized) || "off".equals(normalized) || "0".equals(normalized)) {
+		if ("false".equals(normalized)) {
 			return false;
 		}
 		return defaultValue;
@@ -161,6 +167,15 @@ public record PluginConfig(
 		}
 	}
 
+	private static int parseUpdateCheckIntervalHours(final String rawValue) {
+		try {
+			final int parsed = Integer.parseInt(rawValue.trim());
+			return Math.max(parsed, 1);
+		} catch (final NumberFormatException exception) {
+			return 6;
+		}
+	}
+
 	private static boolean shouldMigrateConfig(final Map<String, String> values) {
 		final String rawVersion = values.get(CONFIG_VERSION_KEY);
 		if (rawVersion == null || rawVersion.isBlank()) {
@@ -192,6 +207,7 @@ public record PluginConfig(
 			case "geoip.provider" -> isGeoIpProviderValue(value);
 			case "geoip.refresh-days" -> isIntegerAtLeast(value, 1);
 			case "log.max-retention-days" -> isIntegerAtLeast(value, 0);
+			case "updates.check-interval-hours" -> isIntegerAtLeast(value, 1);
 			case "log.include-username",
 				"log.include-ip",
 				"log.include-geoip",
@@ -200,7 +216,8 @@ public record PluginConfig(
 				"log.write-connection-events",
 				"log.console-connect",
 				"log.console-disconnect",
-				"telemetry.enabled" -> isBooleanValue(value);
+				"telemetry.enabled",
+				"updates.check-enabled" -> isBooleanValue(value);
 			default -> true;
 		};
 	}
@@ -224,11 +241,7 @@ public record PluginConfig(
 	private static boolean isBooleanValue(final String value) {
 		final String normalized = value.trim().toLowerCase(Locale.ROOT);
 		return "true".equals(normalized)
-			|| "false".equals(normalized)
-			|| "on".equals(normalized)
-			|| "off".equals(normalized)
-			|| "1".equals(normalized)
-			|| "0".equals(normalized);
+			|| "false".equals(normalized);
 	}
 
 	private static boolean isIntegerAtLeast(final String value, final int minimum) {
@@ -306,6 +319,8 @@ public record PluginConfig(
 		values.put("log.console-connect", "true");
 		values.put("log.console-disconnect", "true");
 		values.put("telemetry.enabled", "true");
+		values.put("updates.check-enabled", "true");
+		values.put("updates.check-interval-hours", "6");
 		return values;
 	}
 
@@ -418,6 +433,17 @@ public record PluginConfig(
 			+ "log.console-disconnect: " + quoteConfigValue(values.get("log.console-disconnect")) + "\n"
 			+ "\n"
 			+ "# --------------------------------------------------------------------------\n"
+			+ "# Update checks\n"
+			+ "# --------------------------------------------------------------------------\n"
+			+ "# Checks GitHub Releases for newer stable VelocityIPLogger versions and logs a notice.\n"
+			+ "# Prereleases and the nightly tag are ignored.\n"
+			+ "# This does not download or install updates.\n"
+			+ "# Allowed values: true | false.\n"
+			+ "updates.check-enabled: " + quoteConfigValue(values.get("updates.check-enabled")) + "\n"
+			+ "# Interval in hours between update checks. Minimum effective value is 1.\n"
+			+ "updates.check-interval-hours: " + quoteConfigValue(values.get("updates.check-interval-hours")) + "\n"
+			+ "\n"
+			+ "# --------------------------------------------------------------------------\n"
 			+ "# Telemetry\n"
 			+ "# --------------------------------------------------------------------------\n"
 			+ "# Sends anonymous census pings to NamelessTelemetry:\n"
@@ -425,7 +451,7 @@ public record PluginConfig(
 			+ "# Shared payload: SHA-256 hash of the instance ID, UTC date, project name, and count=1.\n"
 			+ "# No player UUIDs, usernames, player IPs, connection logs, or GeoIP data are sent.\n"
 			+ "# The local instance ID is stored separately in telemetry-instance-id.txt.\n"
-			+ "# Allowed values: true | false | on | off | 1 | 0. Recommended: true | false.\n"
+			+ "# Allowed values: true | false.\n"
 			+ "telemetry.enabled: " + quoteConfigValue(values.get("telemetry.enabled")) + "\n"
 			+ unknownValues;
 	}

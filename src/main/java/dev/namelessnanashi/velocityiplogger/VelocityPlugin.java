@@ -43,6 +43,7 @@ public final class VelocityPlugin {
 	private IpLoggerRepository repository;
 	private volatile GeoIpService geoIpService;
 	private volatile TelemetryService telemetryService;
+	private volatile UpdateCheckerService updateCheckerService;
 	private volatile PluginConfig pluginConfig;
 	private final Object lifecycleLock = new Object();
 	
@@ -58,6 +59,8 @@ public final class VelocityPlugin {
 			geoIpService.initialize();
 			telemetryService = new TelemetryService(logger, dataDirectory, pluginConfig);
 			telemetryService.start();
+			updateCheckerService = new UpdateCheckerService(logger, proxyServer, pluginConfig);
+			updateCheckerService.start();
 			registerCommands();
 			logger.info("VelocityIPLogger initialized. Data directory: {}", dataDirectory.toAbsolutePath().toString());
 		} catch (final Exception exception) {
@@ -68,6 +71,9 @@ public final class VelocityPlugin {
 	@Subscribe
 	void onPostLogin(final PostLoginEvent event) {
 		final Player player = event.getPlayer();
+		if (updateCheckerService != null) {
+			updateCheckerService.notifyPlayerIfOutdated(player);
+		}
 		final UUID uuid = player.getUniqueId();
 		final String rawUsername = player.getUsername();
 		final String rawIp = extractIp(player);
@@ -122,6 +128,9 @@ public final class VelocityPlugin {
 		if (telemetryService != null) {
 			telemetryService.shutdown();
 		}
+		if (updateCheckerService != null) {
+			updateCheckerService.shutdown();
+		}
 	}
 
 	private String extractIp(final Player player) {
@@ -168,6 +177,11 @@ public final class VelocityPlugin {
 				}
 				telemetryService = new TelemetryService(logger, dataDirectory, newConfig);
 				telemetryService.start();
+				if (updateCheckerService != null) {
+					updateCheckerService.shutdown();
+				}
+				updateCheckerService = new UpdateCheckerService(logger, proxyServer, newConfig);
+				updateCheckerService.start();
 				if (previousService != null) {
 					previousService.shutdown();
 				}

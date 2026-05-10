@@ -46,6 +46,7 @@ Network access behavior:
 - Telemetry shares only a SHA-256 hash of the local telemetry instance ID, the UTC date, project name, and `count=1`. It does not send player UUIDs, usernames, player IPs, connection logs, or GeoIP data.
 - Telemetry only runs when its endpoint uses HTTPS.
 - Before each telemetry send, the endpoint host is resolved and private, link-local, loopback, any-local, multicast, and IPv6 unique-local addresses are denied.
+- Update checks are enabled by default and query GitHub Releases for newer stable releases; prereleases and the `nightly` tag are ignored. The update endpoint also requires HTTPS and denies private/link-local/loopback resolved addresses.
 - The plugin only downloads GeoIP database files when needed (startup, staleness window, or manual update command).
 - DB-IP mode downloads from configured DB-IP URLs.
 - MaxMind mode downloads from configured MaxMind permalink template using account-id + license-key basic auth when provided.
@@ -163,13 +164,22 @@ log.console-connect: "true"
 # Print disconnect logs to proxy console
 log.console-disconnect: "true"
 
+# Update checks
+# Checks GitHub Releases for newer stable VelocityIPLogger versions and logs a notice.
+# Prereleases and the nightly tag are ignored.
+# This does not download or install updates.
+# Allowed values: true | false.
+updates.check-enabled: "true"
+# Interval in hours between update checks. Minimum effective value is 1.
+updates.check-interval-hours: "6"
+
 # Telemetry
 # Sends anonymous census pings to NamelessTelemetry:
 # https://github.com/NanashiTheNameless/NamelessTelemetry
 # Shared payload: SHA-256 hash of the instance ID, UTC date, project name, and count=1.
 # No player UUIDs, usernames, player IPs, connection logs, or GeoIP data are sent.
 # The local instance ID is stored separately in telemetry-instance-id.txt.
-# Allowed values: true | false | on | off | 1 | 0. Recommended: true | false.
+# Allowed values: true | false.
 telemetry.enabled: "true"
 ```
 
@@ -203,7 +213,15 @@ Logging option notes:
 - `log.max-retention-days`: prune rows older than this many days using event/last_seen timestamps (`0` disables pruning).
 - `log.console-connect`: write connect events to proxy console log.
 - `log.console-disconnect`: write disconnect events to proxy console log.
-- `telemetry.enabled`: send anonymous [NamelessTelemetry](https://github.com/NanashiTheNameless/NamelessTelemetry) census pings (`true` by default, set to `false` to disable; accepts `true`, `false`, `on`, `off`, `1`, or `0`).
+- `telemetry.enabled`: send anonymous [NamelessTelemetry](https://github.com/NanashiTheNameless/NamelessTelemetry) census pings (`true` by default, set to `false` to disable).
+- `updates.check-enabled`: check GitHub Releases for newer stable plugin versions (`true` by default; prereleases and `nightly` are ignored; this does not download or install updates).
+- `updates.check-interval-hours`: interval between update checks in hours (`6` by default, minimum effective value is `1`).
+
+Update notifications:
+
+- When an update is found, the plugin logs it to console and sends an in-chat notice to online admins.
+- Velocity does not have Bukkit-style OPs, so chat notices are sent to players with `velocityiplogger.update.notify` or `velocityiplogger.admin`.
+- Admins who join after an update was found also receive the notice.
 
 Config migration:
 
