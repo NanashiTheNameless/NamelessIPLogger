@@ -1,5 +1,17 @@
 # NamelessIPLogger
 
+---
+
+#### Please be aware, this plugin is licensed under the [PolyForm Noncommercial License 1.0.0](<https://github.com/NanashiTheNameless/NamelessIPLogger/blob/main/LICENSE.md>) and as such cannot be used by servers that do any of the following:
+- **sell ranks,**
+- **accept donations tied to perks,**
+- **sell cosmetics,**
+- **run ads/sponsorships,**
+- **monetize access,**
+- **or otherwise generate any form of revenue**
+
+---
+
 NamelessIPLogger is a Velocity and Paper plugin for moderation and security auditing that tracks and correlates:
 
 - player UUIDs
