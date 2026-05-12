@@ -7,8 +7,8 @@
 - **the acceptance of donations tied to perks,**
 - **the sale of cosmetics,**
 - **the running of ads/sponsorships,**
-- **the sale of any form if monetized access,**
-- **or the generation of any other form of revenue**
+- **the sale of any form of monetized access,**
+- **and/or the generation of any other form of revenue**
 
 ---
 
