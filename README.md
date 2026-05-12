@@ -2,13 +2,13 @@
 
 ---
 
-#### Please be aware, this plugin is licensed under the [PolyForm Noncommercial License 1.0.0](<https://github.com/NanashiTheNameless/NamelessIPLogger/blob/main/LICENSE.md>) and as such cannot be used by servers that do any of the following:
-- **sell ranks,**
-- **accept donations tied to perks,**
-- **sell cosmetics,**
-- **run ads/sponsorships,**
-- **monetize access,**
-- **or otherwise generate any form of revenue**
+#### Please be aware, this plugin is licensed under the [PolyForm Noncommercial License 1.0.0](<https://github.com/NanashiTheNameless/NamelessIPLogger/blob/main/LICENSE.md>) and as such cannot be used by servers/proxies that participate in/allow/facilitate any of the following to occur with real-world money:
+- **the sale of ranks,**
+- **the acceptance of donations tied to perks,**
+- **the sale of cosmetics,**
+- **the running of ads/sponsorships,**
+- **the sale of any form if monetized access,**
+- **or the generation of any other form of revenue**
 
 ---
 
